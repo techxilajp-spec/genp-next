@@ -1,10 +1,9 @@
 "use client"
 
-import { useState } from "react"
-import { Plus, Search, TrendingUp, TrendingDown, DollarSign, MoreHorizontal, Edit, Trash2 } from 'lucide-react'
+import { useState, useMemo } from "react"
+import { TrendingUp, TrendingDown, DollarSign, MoreHorizontal, Edit, Trash2 } from 'lucide-react'
 
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
@@ -14,18 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { AdvancedFilters, FilterState } from "@/components/advanced-filters"
 
 // Mock data
 const mockFinancialRecords = [
@@ -72,6 +60,28 @@ const mockFinancialRecords = [
     recorded_at: "2024-01-16",
     created_by: "1",
     created_by_name: "john_doe"
+  },
+  {
+    id: 5,
+    type: "income",
+    amount: 8000,
+    description: "Product sales",
+    category_id: 1,
+    category_name: "Revenue",
+    recorded_at: "2024-01-12",
+    created_by: "3",
+    created_by_name: "alice_brown"
+  },
+  {
+    id: 6,
+    type: "outcome",
+    amount: 1200,
+    description: "Marketing campaign",
+    category_id: 4,
+    category_name: "Marketing",
+    recorded_at: "2024-01-10",
+    created_by: "2",
+    created_by_name: "jane_smith"
   }
 ]
 
@@ -83,18 +93,117 @@ const mockFinancialCategories = [
   { id: 5, name: "Travel" }
 ]
 
+const mockUsers = [
+  { id: "1", name: "john_doe" },
+  { id: "2", name: "jane_smith" },
+  { id: "3", name: "alice_brown" }
+]
+
 export function FinancialSection() {
-  const [records, setRecords] = useState(mockFinancialRecords)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [filters, setFilters] = useState<FilterState>({
+    search: '',
+    dateRange: { from: undefined, to: undefined },
+    sortBy: 'recorded_at',
+    sortOrder: 'desc' as const,
+    status: [],
+    priority: [],
+    category: [],
+    user: []
+  })
 
-  const filteredRecords = records.filter(record =>
-    record.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    record.category_name.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filterOptions = {
+    sortOptions: [
+      { value: 'recorded_at', label: 'Date' },
+      { value: 'amount', label: 'Amount' },
+      { value: 'description', label: 'Description' },
+      { value: 'type', label: 'Type' },
+      { value: 'category_name', label: 'Category' },
+      { value: 'created_by_name', label: 'Created By' }
+    ],
+    statusOptions: [
+      { value: 'income', label: 'Income', count: mockFinancialRecords.filter(r => r.type === 'income').length },
+      { value: 'outcome', label: 'Expense', count: mockFinancialRecords.filter(r => r.type === 'outcome').length }
+    ],
+    categoryOptions: mockFinancialCategories.map(cat => ({
+      value: cat.name,
+      label: cat.name,
+      count: mockFinancialRecords.filter(r => r.category_name === cat.name).length
+    })),
+    userOptions: mockUsers.map(user => ({
+      value: user.name,
+      label: user.name,
+      count: mockFinancialRecords.filter(r => r.created_by_name === user.name).length
+    }))
+  }
 
-  const totalIncome = records.filter(r => r.type === 'income').reduce((sum, r) => sum + r.amount, 0)
-  const totalOutcome = records.filter(r => r.type === 'outcome').reduce((sum, r) => sum + r.amount, 0)
+  const filteredAndSortedRecords = useMemo(() => {
+    const filtered = mockFinancialRecords.filter(record => {
+      // Search filter
+      if (filters.search) {
+        const searchLower = filters.search.toLowerCase()
+        if (!record.description.toLowerCase().includes(searchLower) && 
+            !record.category_name.toLowerCase().includes(searchLower) &&
+            !record.created_by_name.toLowerCase().includes(searchLower)) {
+          return false
+        }
+      }
+
+      // Status (Type) filter
+      if (filters.status.length > 0) {
+        if (!filters.status.includes(record.type)) return false
+      }
+
+      // Category filter
+      if (filters.category.length > 0) {
+        if (!filters.category.includes(record.category_name)) return false
+      }
+
+      // User filter
+      if (filters.user.length > 0) {
+        if (!filters.user.includes(record.created_by_name)) return false
+      }
+
+      // Date range filter
+      if (filters.dateRange.from || filters.dateRange.to) {
+        const recordDate = new Date(record.recorded_at)
+        if (filters.dateRange.from && recordDate < filters.dateRange.from) return false
+        if (filters.dateRange.to && recordDate > filters.dateRange.to) return false
+      }
+
+      return true
+    })
+
+    // Sort
+    if (filters.sortBy) {
+      filtered.sort((a, b) => {
+        let aValue = a[filters.sortBy as keyof typeof a]
+        let bValue = b[filters.sortBy as keyof typeof b]
+
+        // Handle date sorting
+        if (filters.sortBy === 'recorded_at') {
+          aValue = new Date(aValue as string).getTime()
+          bValue = new Date(bValue as string).getTime()
+        }
+
+        // Handle string sorting
+        if (typeof aValue === 'string' && typeof bValue === 'string') {
+          aValue = aValue.toLowerCase()
+          bValue = bValue.toLowerCase()
+        }
+
+        if (filters.sortOrder === 'asc') {
+          return aValue < bValue ? -1 : aValue > bValue ? 1 : 0
+        } else {
+          return aValue > bValue ? -1 : aValue < bValue ? 1 : 0
+        }
+      })
+    }
+
+    return filtered
+  }, [filters])
+
+  const totalIncome = filteredAndSortedRecords.filter(r => r.type === 'income').reduce((sum, r) => sum + r.amount, 0)
+  const totalOutcome = filteredAndSortedRecords.filter(r => r.type === 'outcome').reduce((sum, r) => sum + r.amount, 0)
   const netProfit = totalIncome - totalOutcome
 
   return (
@@ -104,65 +213,24 @@ export function FinancialSection() {
           <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-transparent">Financial Records</h1>
           <p className="text-sm lg:text-base text-slate-600">Track startup income and expenses</p>
         </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="w-full lg:w-auto bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Record
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="w-[95vw] max-w-md mx-auto">
-            <DialogHeader>
-              <DialogTitle>Add Financial Record</DialogTitle>
-              <DialogDescription>Record a new income or expense transaction</DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="type" className="text-right">Type</Label>
-                <Select>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="income">Income</SelectItem>
-                    <SelectItem value="outcome">Expense</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="amount" className="text-right">Amount</Label>
-                <Input id="amount" type="number" className="col-span-3" />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="description" className="text-right">Description</Label>
-                <Textarea id="description" className="col-span-3" />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="category" className="text-right">Category</Label>
-                <Select>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {mockFinancialCategories.map((category) => (
-                      <SelectItem key={category.id} value={category.id.toString()}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="recorded_at" className="text-right">Date</Label>
-                <Input id="recorded_at" type="date" className="col-span-3" />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="submit">Add Record</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
+
+      {/* Advanced Filters */}
+      <AdvancedFilters
+        filters={filters}
+        onFiltersChange={setFilters}
+        options={filterOptions}
+        showFilters={{
+          search: true,
+          dateRange: true,
+          sort: true,
+          status: true,
+          priority: false,
+          category: true,
+          user: true
+        }}
+        placeholder="Search by description, category, or user..."
+      />
 
       <div className="grid gap-3 lg:gap-4 grid-cols-1 sm:grid-cols-3">
         <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-emerald-50 hover:shadow-xl transition-all duration-300">
@@ -173,7 +241,8 @@ export function FinancialSection() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-xl lg:text-2xl font-bold text-emerald-600">${totalIncome.toLocaleString()}</div>
+            <div className="text-xl lg:text-2xl font-bold text-emerald-600">¥{totalIncome.toLocaleString()}</div>
+            <p className="text-xs text-slate-600">From {filteredAndSortedRecords.filter(r => r.type === 'income').length} records</p>
           </CardContent>
         </Card>
         <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-red-50 hover:shadow-xl transition-all duration-300">
@@ -184,7 +253,8 @@ export function FinancialSection() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-xl lg:text-2xl font-bold text-red-600">${totalOutcome.toLocaleString()}</div>
+            <div className="text-xl lg:text-2xl font-bold text-red-600">¥{totalOutcome.toLocaleString()}</div>
+            <p className="text-xs text-slate-600">From {filteredAndSortedRecords.filter(r => r.type === 'outcome').length} records</p>
           </CardContent>
         </Card>
         <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-blue-50 hover:shadow-xl transition-all duration-300">
@@ -196,29 +266,19 @@ export function FinancialSection() {
           </CardHeader>
           <CardContent>
             <div className={`text-xl lg:text-2xl font-bold ${netProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-              ${netProfit.toLocaleString()}
+              ¥{netProfit.toLocaleString()}
             </div>
+            <p className="text-xs text-slate-600">From filtered records</p>
           </CardContent>
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
-            <div>
-              <CardTitle className="text-base lg:text-lg">Financial Transactions</CardTitle>
-              <CardDescription className="text-sm">All income and expense records</CardDescription>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Search className="h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search records..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full lg:w-64"
-              />
-            </div>
-          </div>
+      <Card className="border-0 shadow-lg bg-white/70 backdrop-blur-sm hover:shadow-xl transition-all duration-300">
+        <CardHeader className="border-b border-slate-100">
+          <CardTitle className="text-base lg:text-lg text-slate-900">Financial Transactions</CardTitle>
+          <CardDescription className="text-sm text-slate-600">
+            Showing {filteredAndSortedRecords.length} of {mockFinancialRecords.length} records
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -235,7 +295,7 @@ export function FinancialSection() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredRecords.map((record) => (
+                {filteredAndSortedRecords.map((record) => (
                   <TableRow key={record.id}>
                     <TableCell className="min-w-[100px]">
                       <Badge variant={record.type === 'income' ? 'default' : 'destructive'} className={`text-xs ${record.type === 'income' ? 'bg-gradient-to-r from-emerald-500 to-green-600 text-white border-0' : 'bg-gradient-to-r from-red-500 to-red-600 text-white border-0'}`}>
@@ -260,7 +320,7 @@ export function FinancialSection() {
                     </TableCell>
                     <TableCell className="min-w-[100px]">
                       <div className={`font-medium text-sm lg:text-base ${record.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                        ${record.amount.toLocaleString()}
+                        ¥{record.amount.toLocaleString()}
                       </div>
                     </TableCell>
                     <TableCell className="min-w-[100px]">

@@ -1,12 +1,12 @@
-import { UsersSection } from "@/components/users-section"
+import { UserProductivitySection } from "@/components/user-productivity-section"
 import { MobileHeader } from '@/components/mobile-header'
 
 export default function UsersPage() {
   return (
     <>
-      <MobileHeader title="Users" />
+      <MobileHeader title="User Productivity" />
       <div className="p-4 lg:p-6">
-        <UsersSection />
+        <UserProductivitySection />
       </div>
     </>
   )
