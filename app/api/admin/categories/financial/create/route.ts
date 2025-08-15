@@ -75,11 +75,22 @@ export const POST = async (req: NextRequest): Promise<Response> => {
   const supabase = await createClient();
   const { name, description, category_type } = await req.json();
 
+  const { data: user } = await supabase.auth.getUser();
+
+  if (!user) {
+    return errorResponse(
+      MESSAGES.COMMON.ERROR,
+      MESSAGES.CATEGORIES.FINANCIAL.CREATE_FAILED,
+      500
+    );
+  }
+
   const { data, error } = await supabase.from("financial_categories").insert({
     name,
     description,
     category_type,
     is_active: true,
+    created_by: user?.user?.id,
   });
 
   if (error) {

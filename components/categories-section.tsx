@@ -31,51 +31,76 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  useDeleteTaskCategory,
   useTaskCategories,
   useUpdateTaskCategory,
 } from "@/hooks/admin/categories/task";
-import { useFinancialCategories } from "@/hooks/admin/categories/financial";
+import {
+  useCreateFinancialCategory,
+  useDeleteFinancialCategory,
+  useFinancialCategories,
+  useUpdateFinancialCategory,
+} from "@/hooks/admin/categories/financial";
 import PaginationComponent from "./app/pagination";
 import { Skeleton } from "./ui/skeleton";
 import { useTableState } from "@/hooks/useTableStateHook";
 import { toast } from "sonner";
 import { useModal } from "@/hooks/useModalHook";
-import { Textarea } from "@/components/ui/textarea";
 import { useCreateTaskCategory } from "@/hooks/admin/categories/task";
-import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
-
-const taskCategorySchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  description: z.string().min(1, "Description is required"),
-  color: z.string().min(1, "Color is required"),
-});
-
-type TaskCategoryFormData = z.infer<typeof taskCategorySchema>;
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
+import {
+  TaskCategoryForm,
+  TaskCategoryFormData,
+  taskCategorySchema,
+} from "@/components/categories/task-category-form";
+import {
+  FinancialCategoryForm,
+  FinancialCategoryFormData,
+  financialCategorySchema,
+} from "@/components/categories/financial-category-form";
 
 export function CategoriesSection() {
   const taskTable = useTableState(10); // default page size is 10 for task categories
   const financialTable = useTableState(10); // default page size is 10 for financial categories
   const taskModal = useModal(); // modal for task categories
   const updateTaskCategoryModal = useModal(); // modal for update task categories
+  const deleteTaskCategoryModal = useModal(); // modal for delete task categories
   const financialModal = useModal(); // modal for financial categories
+  const updateFinancialCategoryModal = useModal(); // modal for update financial categories
+  const deleteFinancialCategoryModal = useModal(); // modal for delete financial categories
 
   const [taskCategoryIdToUpdate, setTaskCategoryIdToUpdate] = useState<
     number | null
   >(null);
+  const [taskCategoryIdToDelete, setTaskCategoryIdToDelete] = useState<
+    number | null
+  >(null);
+
+  const [financialCategoryIdToUpdate, setFinancialCategoryIdToUpdate] =
+    useState<number | null>(null);
+  const [financialCategoryIdToDelete, setFinancialCategoryIdToDelete] =
+    useState<number | null>(null);
 
   // state for task categories create
-  const form = useForm<TaskCategoryFormData>({
+  const createTaskCategoryForm = useForm<TaskCategoryFormData>({
     resolver: zodResolver(taskCategorySchema),
     defaultValues: {
       name: "",
@@ -93,6 +118,24 @@ export function CategoriesSection() {
     },
   });
 
+  const createFinancialCategoryForm = useForm<FinancialCategoryFormData>({
+    resolver: zodResolver(financialCategorySchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      category_type: "income",
+    },
+  });
+
+  const updateFinancialCategoryForm = useForm<FinancialCategoryFormData>({
+    resolver: zodResolver(financialCategorySchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      category_type: "",
+    },
+  });
+
   const {
     data: taskCategoriesData,
     isLoading: taskCategoriesLoading,
@@ -106,6 +149,7 @@ export function CategoriesSection() {
     isLoading: financialCategoriesLoading,
     error: financialCategoriesError,
     isError: financialCategoriesIsError,
+    refetch: financialCategoriesRefetch,
   } = useFinancialCategories(
     financialTable.page,
     financialTable.pageSize,
@@ -122,11 +166,32 @@ export function CategoriesSection() {
     isPending: updateTaskCategoryLoading,
   } = useUpdateTaskCategory();
 
-  const onSubmit = (data: TaskCategoryFormData) => {
+  const {
+    mutateAsync: deleteTaskCategory,
+    isPending: deleteTaskCategoryLoading,
+  } = useDeleteTaskCategory();
+
+  const {
+    mutateAsync: createFinancialCategory,
+    isPending: createFinancialCategoryLoading,
+  } = useCreateFinancialCategory();
+
+  const {
+    mutateAsync: updateFinancialCategory,
+    isPending: updateFinancialCategoryLoading,
+  } = useUpdateFinancialCategory();
+
+  const {
+    mutateAsync: deleteFinancialCategory,
+    isPending: deleteFinancialCategoryLoading,
+  } = useDeleteFinancialCategory();
+
+  const onCreateTaskCategorySubmit = (data: TaskCategoryFormData) => {
     createTaskCategory(data, {
       onSuccess: () => {
         taskModal.setOpen(false);
         toast.success("Task category created successfully");
+        createTaskCategoryForm.reset();
         taskCategoriesRefetch();
       },
       onError: (error) => {
@@ -135,7 +200,7 @@ export function CategoriesSection() {
     });
   };
 
-  const onUpdateTaskCategory = (data: TaskCategoryFormData) => {
+  const onUpdateTaskCategorySubmit = (data: TaskCategoryFormData) => {
     updateTaskCategory(
       {
         category_id: taskCategoryIdToUpdate || 0,
@@ -147,6 +212,7 @@ export function CategoriesSection() {
         onSuccess: () => {
           updateTaskCategoryModal.setOpen(false);
           toast.success("Task category updated successfully");
+          updateTaskCategoryForm.reset();
           taskCategoriesRefetch();
         },
         onError: (error) => {
@@ -162,6 +228,92 @@ export function CategoriesSection() {
     updateTaskCategoryModal.setOpen(true);
     updateTaskCategoryForm.reset(category);
     setTaskCategoryIdToUpdate(category.category_id);
+  };
+
+  const openDeleteTaskCategoryModal = (category_id: number) => {
+    deleteTaskCategoryModal.setOpen(true);
+    setTaskCategoryIdToDelete(category_id);
+  };
+
+  const onDeleteTaskCategorySubmit = () => {
+    deleteTaskCategoryModal.setOpen(false);
+    deleteTaskCategory(
+      { category_id: taskCategoryIdToDelete || 0 },
+      {
+        onSuccess: () => {
+          toast.success("Task category deleted successfully");
+          taskCategoriesRefetch();
+        },
+        onError: (error) => {
+          toast.error(error.message);
+        },
+      }
+    );
+  };
+
+  const onCreateFinancialCategorySubmit = (data: FinancialCategoryFormData) => {
+    createFinancialCategory(data, {
+      onSuccess: () => {
+        financialModal.setOpen(false);
+        toast.success("Financial category created successfully");
+        createFinancialCategoryForm.reset();
+        financialCategoriesRefetch();
+      },
+      onError: (error) => {
+        toast.error(error.message);
+      },
+    });
+  };
+
+  const onUpdateFinancialCategorySubmit = (data: FinancialCategoryFormData) => {
+    updateFinancialCategory(
+      {
+        category_id: financialCategoryIdToUpdate || 0,
+        name: data.name,
+        description: data.description,
+        category_type: data.category_type,
+      },
+      {
+        onSuccess: () => {
+          updateFinancialCategoryModal.setOpen(false);
+          toast.success("Financial category updated successfully");
+          updateFinancialCategoryForm.reset();
+          financialCategoriesRefetch();
+        },
+        onError: (error) => {
+          toast.error(error.message);
+        },
+      }
+    );
+  };
+
+  const openUpdateFinancialCategoryModal = (
+    category: { category_id: number } & FinancialCategoryFormData
+  ) => {
+    updateFinancialCategoryModal.setOpen(true);
+    updateFinancialCategoryForm.reset(category);
+    setFinancialCategoryIdToUpdate(category.category_id);
+  };
+
+  const openDeleteFinancialCategoryModal = (category_id: number) => {
+    deleteFinancialCategoryModal.setOpen(true);
+    setFinancialCategoryIdToDelete(category_id);
+  };
+
+  const onDeleteFinancialCategorySubmit = () => {
+    deleteFinancialCategoryModal.setOpen(false);
+    deleteFinancialCategory(
+      { category_id: financialCategoryIdToDelete || 0 },
+      {
+        onSuccess: () => {
+          toast.success("Financial category deleted successfully");
+          financialCategoriesRefetch();
+        },
+        onError: (error) => {
+          toast.error(error.message);
+        },
+      }
+    );
   };
 
   // Error handling for task and financial categories
@@ -243,77 +395,12 @@ export function CategoriesSection() {
                     </DialogDescription>
                   </DialogHeader>
 
-                  <form
-                    onSubmit={form.handleSubmit(onSubmit)}
-                    className="space-y-6 py-4"
-                  >
-                    {/* Name Field */}
-                    <div className="flex flex-col gap-2">
-                      <Label htmlFor="task-category-name">Name</Label>
-                      <Input
-                        id="task-category-name"
-                        placeholder="Enter category name"
-                        {...form.register("name")}
-                      />
-                      {form.formState.errors.name && (
-                        <p className="text-red-500 text-xs mt-1">
-                          {form.formState.errors.name.message}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Description Field */}
-                    <div className="flex flex-col gap-2">
-                      <Label htmlFor="task-category-description">
-                        Description
-                      </Label>
-                      <Textarea
-                        id="task-category-description"
-                        placeholder="Optional description..."
-                        className="resize-none"
-                        rows={3}
-                        {...form.register("description")}
-                      />
-                      {form.formState.errors.description && (
-                        <p className="text-red-500 text-xs mt-1">
-                          {form.formState.errors.description.message}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Color Picker Field */}
-                    <div className="flex flex-col gap-2">
-                      <Label htmlFor="task-category-color">Color</Label>
-                      <div className="flex items-center gap-3">
-                        <Input
-                          type="color"
-                          id="task-category-color"
-                          className="w-12 h-10 p-0 border-none cursor-pointer"
-                          {...form.register("color")}
-                        />
-                        <span className="text-sm text-gray-500">
-                          {form.watch("color") || "#000000"}
-                        </span>
-                      </div>
-                      {form.formState.errors.color && (
-                        <p className="text-red-500 text-xs mt-1">
-                          {form.formState.errors.color.message}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Footer */}
-                    <DialogFooter className="pt-4">
-                      <Button
-                        type="submit"
-                        className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer"
-                      >
-                        {createTaskCategoryLoading
-                          ? "Creating..."
-                          : "Create Category"}
-                      </Button>
-                    </DialogFooter>
-                  </form>
+                  <TaskCategoryForm
+                    form={createTaskCategoryForm}
+                    onSubmit={onCreateTaskCategorySubmit}
+                    loading={createTaskCategoryLoading}
+                    submitText="Create Category"
+                  />
                 </DialogContent>
               </Dialog>
             </div>
@@ -397,7 +484,14 @@ export function CategoriesSection() {
                                 <Edit className="mr-2 h-4 w-4" />
                                 Edit
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="text-red-600">
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  openDeleteTaskCategoryModal(
+                                    category.category_id
+                                  )
+                                }
+                                className="text-red-600"
+                              >
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Delete
                               </DropdownMenuItem>
@@ -479,6 +573,7 @@ export function CategoriesSection() {
                     Add Financial Category
                   </Button>
                 </DialogTrigger>
+
                 <DialogContent className="w-[95vw] max-w-md mx-auto">
                   <DialogHeader>
                     <DialogTitle>Add Financial Category</DialogTitle>
@@ -486,23 +581,13 @@ export function CategoriesSection() {
                       Create a new category for organizing financial records
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label
-                        htmlFor="financial-category-name"
-                        className="text-right"
-                      >
-                        Name
-                      </Label>
-                      <Input
-                        id="financial-category-name"
-                        className="col-span-3"
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button type="submit">Create Category</Button>
-                  </DialogFooter>
+
+                  <FinancialCategoryForm
+                    form={createFinancialCategoryForm}
+                    onSubmit={onCreateFinancialCategorySubmit}
+                    loading={createFinancialCategoryLoading}
+                    submitText="Create Category"
+                  />
                 </DialogContent>
               </Dialog>
             </div>
@@ -525,6 +610,9 @@ export function CategoriesSection() {
                       </TableHead>
                       <TableHead className="min-w-[120px]">
                         Records Count
+                      </TableHead>
+                      <TableHead className="min-w-[120px]">
+                        Type
                       </TableHead>
                       <TableHead className="text-right min-w-[80px]">
                         Actions
@@ -550,6 +638,9 @@ export function CategoriesSection() {
                             {category.financial_records[0].count} records
                           </Badge>
                         </TableCell>
+                        <TableCell className="min-w-[120px]">
+                          {category.category_type}
+                        </TableCell>
                         <TableCell className="text-right min-w-[80px]">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -558,11 +649,27 @@ export function CategoriesSection() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  openUpdateFinancialCategoryModal({
+                                    category_id: category.category_id,
+                                    name: category.name,
+                                    description: category.description,
+                                    category_type: category.category_type,
+                                  })
+                                }
+                              >
                                 <Edit className="mr-2 h-4 w-4" />
                                 Edit
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="text-red-600">
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  openDeleteFinancialCategoryModal(
+                                    category.category_id
+                                  )
+                                }
+                                className="text-red-600"
+                              >
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Delete
                               </DropdownMenuItem>
@@ -618,75 +725,79 @@ export function CategoriesSection() {
             </DialogDescription>
           </DialogHeader>
 
-          <form
-            onSubmit={updateTaskCategoryForm.handleSubmit(onUpdateTaskCategory)}
-            className="space-y-6 py-4"
-          >
-            {/* Name Field */}
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="task-category-name">Name</Label>
-              <Input
-                id="task-category-name"
-                placeholder="Enter category name"
-                {...updateTaskCategoryForm.register("name")}
-              />
-              {updateTaskCategoryForm.formState.errors.name && (
-                <p className="text-red-500 text-xs mt-1">
-                  {updateTaskCategoryForm.formState.errors.name.message}
-                </p>
-              )}
-            </div>
-
-            {/* Description Field */}
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="task-category-description">Description</Label>
-              <Textarea
-                id="task-category-description"
-                placeholder="Optional description..."
-                className="resize-none"
-                rows={3}
-                {...updateTaskCategoryForm.register("description")}
-              />
-              {updateTaskCategoryForm.formState.errors.description && (
-                <p className="text-red-500 text-xs mt-1">
-                  {updateTaskCategoryForm.formState.errors.description.message}
-                </p>
-              )}
-            </div>
-
-            {/* Color Picker Field */}
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="task-category-color">Color</Label>
-              <div className="flex items-center gap-3">
-                <Input
-                  type="color"
-                  id="task-category-color"
-                  className="w-12 h-10 p-0 border-none cursor-pointer"
-                  {...updateTaskCategoryForm.register("color")}
-                />
-                <span className="text-sm text-gray-500">
-                  {updateTaskCategoryForm.watch("color") || "#000000"}
-                </span>
-              </div>
-              {updateTaskCategoryForm.formState.errors.color && (
-                <p className="text-red-500 text-xs mt-1">
-                  {updateTaskCategoryForm.formState.errors.color.message}
-                </p>
-              )}
-            </div>
-
-            {/* Footer */}
-            <DialogFooter className="pt-4">
-              <Button
-                type="submit"
-                className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer"
-              >
-                {updateTaskCategoryLoading ? "Updating..." : "Update Category"}
-              </Button>
-            </DialogFooter>
-          </form>
+          <TaskCategoryForm
+            form={updateTaskCategoryForm}
+            onSubmit={onUpdateTaskCategorySubmit}
+            loading={updateTaskCategoryLoading}
+            submitText="Update Category"
+          />
         </DialogContent>
       </Dialog>
+
+      <Dialog
+        open={updateFinancialCategoryModal.open}
+        onOpenChange={updateFinancialCategoryModal.setOpen}
+      >
+        <DialogContent className="w-[95vw] max-w-md mx-auto">
+          <DialogHeader>
+            <DialogTitle>Update Financial Category</DialogTitle>
+            <DialogDescription>
+              Update a category for organizing financial records
+            </DialogDescription>
+          </DialogHeader>
+
+          <FinancialCategoryForm
+            form={updateFinancialCategoryForm}
+            onSubmit={onUpdateFinancialCategorySubmit}
+            loading={updateFinancialCategoryLoading}
+            submitText="Update Category"
+          />
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog
+        open={deleteTaskCategoryModal.open}
+        onOpenChange={deleteTaskCategoryModal.setOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete your
+              task category and remove your data from our servers.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={onDeleteTaskCategorySubmit}>
+              {deleteTaskCategoryLoading ? "Deleting..." : "Delete Category"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={deleteFinancialCategoryModal.open}
+        onOpenChange={deleteFinancialCategoryModal.setOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete your
+              financial category and remove your data from our servers.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={onDeleteFinancialCategorySubmit}>
+              {deleteFinancialCategoryLoading
+                ? "Deleting..."
+                : "Delete Category"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

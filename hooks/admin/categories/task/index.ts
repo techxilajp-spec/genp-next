@@ -7,6 +7,7 @@ import {
 import {
   TaskCategoriesResponse,
   TaskCategoryCreate,
+  TaskCategoryDelete,
   TaskCategoryUpdate,
 } from "@/types/api/admin/categories/task";
 import axios from "axios";
@@ -67,6 +68,26 @@ export const useUpdateTaskCategory = (): UseMutationResult<
       const res = await axios.patch<TaskCategoryUpdate>(
         `/api/admin/categories/task/${category.category_id}/update`,
         category
+      );
+      return res.data;
+    },
+  });
+};
+
+/**
+ * @description
+ * Delete Task Category Hook
+ * @returns {UseMutationResult<TaskCategoryDelete>}
+ */
+export const useDeleteTaskCategory = (): UseMutationResult<
+  TaskCategoryDelete,
+  Error,
+  { category_id: number }
+> => {
+  return useMutation<TaskCategoryDelete, Error, { category_id: number }>({
+    mutationFn: async ({ category_id }) => {
+      const res = await axios.delete<TaskCategoryDelete>(
+        `/api/admin/categories/task/${category_id}/delete`
       );
       return res.data;
     },

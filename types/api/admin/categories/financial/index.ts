@@ -23,7 +23,6 @@ export interface FinancialCategory {
 export interface FinancialCategoryCreate {
   name: string;
   description: string;
-  is_active: boolean;
   category_type: string;
 }
 
@@ -31,7 +30,6 @@ export interface FinancialCategoryUpdate {
   category_id: number;
   name: string;
   description: string;
-  is_active: boolean;
   category_type: string;
 }
 
