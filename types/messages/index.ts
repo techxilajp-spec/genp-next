@@ -54,6 +54,30 @@ export const MESSAGES = {
         CATEGORY_IN_USE: "Financial Category is already in use",
         ID_REQUIRED: "Financial Category ID is required",
       }
+    },
+    DEPARTMENTS: {
+      FETCH_SUCCESS: "Departments Fetch Success",
+      FETCH_FAILED: "Departments Fetch Failed",
+      CREATE_SUCCESS: "Department Create Success",
+      CREATE_FAILED: "Department Create Failed",
+      UPDATE_SUCCESS: "Department Update Success",
+      UPDATE_FAILED: "Department Update Failed",
+      DELETE_SUCCESS: "Department Delete Success",
+      DELETE_FAILED: "Department Delete Failed",
+      DEPARTMENT_IN_USE: "Department is already in use",
+      ID_REQUIRED: "Department ID is required",
+    },
+    USERS: {
+      FETCH_SUCCESS: "Users Fetch Success",
+      FETCH_FAILED: "Users Fetch Failed",
+      CREATE_SUCCESS: "User Create Success",
+      CREATE_FAILED: "User Create Failed",
+      UPDATE_SUCCESS: "User Update Success",
+      UPDATE_FAILED: "User Update Failed",
+      DELETE_SUCCESS: "User Delete Success",
+      DELETE_FAILED: "User Delete Failed",
+      USER_IN_USE: "User is already in use",
+      ID_REQUIRED: "User ID is required",
     }
   };
   
