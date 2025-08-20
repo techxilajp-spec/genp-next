@@ -42,3 +42,16 @@ export interface DepartmentsResponse {
     email: string;
     status: boolean;
   }
+
+  export interface DepartmentCreate {
+    department_name: string;
+    description: string;
+    code: string;
+    manager_id: string;
+    budget: number;
+    level: string;
+    location: string;
+    phone: string;
+    email: string;
+    status: boolean;
+  }

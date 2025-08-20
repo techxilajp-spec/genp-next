@@ -4,6 +4,7 @@ import {
   UseQueryResult,
 } from "@tanstack/react-query";
 import {
+  DepartmentCreate,
   DepartmentsResponse,
   DepartmentUpdate,
 } from "@/types/api/admin/departments";
@@ -27,6 +28,27 @@ export const useDepartments = (
         params: { page, pageSize, keyword },
       }),
     select: (data) => data.data,
+  });
+};
+
+/**
+ * @description
+ * Create Department Hook
+ * @returns {UseMutationResult<DepartmentCreate>}
+ */
+export const useCreateDepartment = (): UseMutationResult<
+  DepartmentCreate,
+  Error,
+  DepartmentCreate
+> => {
+  return useMutation<DepartmentCreate, Error, DepartmentCreate>({
+    mutationFn: async (department) => {
+      const res = await axios.post<DepartmentCreate>(
+        `/api/admin/departments/create`,
+        department
+      );
+      return res.data;
+    },
   });
 };
 

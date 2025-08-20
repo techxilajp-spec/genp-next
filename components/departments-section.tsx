@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import {
-  Plus,
   Search,
   MoreHorizontal,
   Edit,
@@ -12,6 +11,7 @@ import {
   DollarSign,
   TrendingUp,
   MapPin,
+  Plus,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -58,7 +58,11 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useI18n } from "@/lib/i18n";
-import { useDepartments, useUpdateDepartment } from "@/hooks/admin/departments";
+import {
+  useCreateDepartment,
+  useDepartments,
+  useUpdateDepartment,
+} from "@/hooks/admin/departments";
 import { Department } from "@/types/api/admin/departments";
 import { formatCurrency, formatPercentage } from "@/lib/utils";
 import { useTableState } from "@/hooks/useTableStateHook";
@@ -71,7 +75,7 @@ import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "./ui/form";
 
-const editDepartmentSchema = z.object({
+const departmentSchema = z.object({
   department_name: z.string().min(1, "Department name is required"),
   code: z.string().min(1, "Code is required"),
   manager_id: z.string().min(1, "Manager is required"),
@@ -83,7 +87,7 @@ const editDepartmentSchema = z.object({
   email: z.string().email().optional(),
 });
 
-export type EditDepartmentForm = z.infer<typeof editDepartmentSchema>;
+export type DepartmentForm = z.infer<typeof departmentSchema>;
 
 export function DepartmentsSection() {
   const { t } = useI18n();
@@ -103,10 +107,11 @@ export function DepartmentsSection() {
 
   const { data: usersNames } = useUsersNames();
   const { mutateAsync: updateDepartment } = useUpdateDepartment();
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const { mutateAsync: createDepartment } = useCreateDepartment();
   const [selectedDepartment, setSelectedDepartment] =
     useState<Department | null>(null);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState<boolean>(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState<boolean>(false);
 
   const getLevelBadge = (level: string) => {
     switch (level) {
@@ -176,23 +181,37 @@ export function DepartmentsSection() {
     }
   };
 
-const editForm = useForm<EditDepartmentForm>({
-  resolver: zodResolver(editDepartmentSchema),
-  defaultValues: {
-    department_name: "",
-    code: "",
-    manager_id: "",
-    level: undefined,
-    budget: 0 as number,
-    description: "",
-    location: "",
-    phone: "",
-    email: "",
-  },
-});
+  const editForm = useForm<DepartmentForm>({
+    resolver: zodResolver(departmentSchema),
+    defaultValues: {
+      department_name: "",
+      code: "",
+      manager_id: "",
+      level: undefined,
+      budget: 0 as number,
+      description: "",
+      location: "",
+      phone: "",
+      email: "",
+    },
+  });
 
+  const addForm = useForm<DepartmentForm>({
+    resolver: zodResolver(departmentSchema),
+    defaultValues: {
+      department_name: "",
+      code: "",
+      manager_id: "",
+      level: undefined,
+      budget: 0 as number,
+      description: "",
+      location: "",
+      phone: "",
+      email: "",
+    },
+  });
 
-  const onSubmitEdit = async (data: EditDepartmentForm) => {
+  const onSubmitEdit = async (data: DepartmentForm) => {
     await updateDepartment(
       {
         department_name: data.department_name,
@@ -211,7 +230,40 @@ const editForm = useForm<EditDepartmentForm>({
         onSuccess: () => {
           toast.success("Department updated successfully");
           refetchDepartments();
+          editForm.reset();
           setIsEditDialogOpen(false);
+        },
+        onError: (error) => {
+          toast.error(
+            error instanceof Error
+              ? error.message
+              : "Failed to update department"
+          );
+        },
+      }
+    );
+  };
+
+  const onSubmitAdd = async (data: DepartmentForm) => {
+    await createDepartment(
+      {
+        department_name: data.department_name,
+        description: data.description || "",
+        code: data.code,
+        manager_id: data.manager_id,
+        level: data.level,
+        budget: data.budget,
+        location: data.location || "",
+        phone: data.phone || "",
+        email: data.email || "",
+        status: true,
+      },
+      {
+        onSuccess: () => {
+          toast.success("Department added successfully");
+          refetchDepartments();
+          addForm.reset();
+          setIsAddDialogOpen(false);
         },
         onError: (error) => {
           toast.error(
@@ -256,95 +308,197 @@ const editForm = useForm<EditDepartmentForm>({
                   Create a new department for your organization
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">{t.departments.departmentName}</Label>
-                    <Input id="name" placeholder="Enter department name" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="code">Code</Label>
-                    <Input id="code" placeholder="e.g., ENG, MKT" />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="description">
-                    {t.departments.description}
-                  </Label>
-                  <Textarea
-                    id="description"
-                    placeholder="Department description"
-                  />
-                </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="manager">{t.departments.manager}</Label>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue
-                          placeholder={t.departments.selectManager}
+
+              <Form {...addForm}>
+                <form onSubmit={addForm.handleSubmit(onSubmitAdd)}>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>{t.departments.departmentName}</Label>
+                        <Input
+                          placeholder="Department Name"
+                          {...addForm.register("department_name")}
                         />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {usersNames?.data?.map((user) => (
-                          <SelectItem key={user.user_id} value={user.user_id}>
-                            {user.username}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                        {addForm.formState.errors.department_name && (
+                          <p className="text-red-500 text-sm">
+                            {addForm.formState.errors.department_name.message}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Code</Label>
+                        <Input
+                          placeholder="eg: HR, DSN, IT, etc."
+                          {...addForm.register("code")}
+                        />
+                        {addForm.formState.errors.code && (
+                          <p className="text-red-500 text-sm">
+                            {addForm.formState.errors.code.message}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>{t.departments.description}</Label>
+                      <Textarea
+                        placeholder="Description"
+                        {...addForm.register("description")}
+                      />
+                      {addForm.formState.errors.description && (
+                        <p className="text-red-500 text-sm">
+                          {addForm.formState.errors.description.message}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>{t.departments.manager}</Label>
+                        <Controller
+                          control={addForm.control}
+                          name="manager_id"
+                          render={({ field }) => (
+                            <Select
+                              value={field.value}
+                              onValueChange={field.onChange}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select Manager" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {usersNames?.data?.map((user) => (
+                                  <SelectItem
+                                    key={user.user_id}
+                                    value={user.user_id.toString()}
+                                  >
+                                    {user.username}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        />
+                        {addForm.formState.errors.manager_id && (
+                          <p className="text-red-500 text-sm">
+                            {addForm.formState.errors.manager_id.message}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Level</Label>
+                        <Controller
+                          control={addForm.control}
+                          name="level"
+                          render={({ field }) => (
+                            <Select
+                              value={field.value}
+                              onValueChange={(value) =>
+                                field.onChange(
+                                  value as
+                                    | "executive"
+                                    | "management"
+                                    | "operational"
+                                    | "support"
+                                )
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select Level" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="executive">
+                                  {t.departments.executiveLevel}
+                                </SelectItem>
+                                <SelectItem value="management">
+                                  {t.departments.managementLevel}
+                                </SelectItem>
+                                <SelectItem value="operational">
+                                  {t.departments.operationalLevel}
+                                </SelectItem>
+                                <SelectItem value="support">
+                                  {t.departments.supportLevel}
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
+                        />
+                        {addForm.formState.errors.level && (
+                          <p className="text-red-500 text-sm">
+                            {addForm.formState.errors.level.message}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Budget</Label>
+                        <Input
+                          placeholder="eg: 1000000"
+                          type="number"
+                          {...addForm.register("budget", {
+                            valueAsNumber: true,
+                          })}
+                        />
+                        {addForm.formState.errors.budget && (
+                          <p className="text-red-500 text-sm">
+                            {addForm.formState.errors.budget.message}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Location</Label>
+                        <Input
+                          placeholder="eg: New York, New York"
+                          {...addForm.register("location")}
+                        />
+                        {addForm.formState.errors.location && (
+                          <p className="text-red-500 text-sm">
+                            {addForm.formState.errors.location.message}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Phone</Label>
+                        <Input
+                          placeholder="eg: +1234567890"
+                          {...addForm.register("phone")}
+                        />
+                        {addForm.formState.errors.phone && (
+                          <p className="text-red-500 text-sm">
+                            {addForm.formState.errors.phone.message}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Email</Label>
+                        <Input
+                          placeholder="eg: example@example.com"
+                          type="email"
+                          {...addForm.register("email")}
+                        />
+                        {addForm.formState.errors.email && (
+                          <p className="text-red-500 text-sm">
+                            {addForm.formState.errors.email.message}
+                          </p>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="level">Level</Label>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select level" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="executive">
-                          {t.departments.executiveLevel}
-                        </SelectItem>
-                        <SelectItem value="management">
-                          {t.departments.managementLevel}
-                        </SelectItem>
-                        <SelectItem value="operational">
-                          {t.departments.operationalLevel}
-                        </SelectItem>
-                        <SelectItem value="support">
-                          {t.departments.supportLevel}
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="budget">{t.departments.budget}</Label>
-                    <Input id="budget" type="number" placeholder="0" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="location">{t.departments.location}</Label>
-                    <Input id="location" placeholder="Office location" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">{t.departments.phone}</Label>
-                    <Input id="phone" placeholder="+81-3-1234-5678" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">{t.departments.email}</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="dept@startup.com"
-                    />
-                  </div>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button type="submit">{t.common.save}</Button>
-              </DialogFooter>
+
+                  <DialogFooter>
+                    <Button type="submit">Save</Button>
+                  </DialogFooter>
+                </form>
+              </Form>
             </DialogContent>
           </Dialog>
         </div>
@@ -639,6 +793,11 @@ const editForm = useForm<EditDepartmentForm>({
                   <div className="space-y-2">
                     <Label>{t.departments.description}</Label>
                     <Textarea {...editForm.register("description")} />
+                    {editForm.formState.errors.description && (
+                      <p className="text-red-500 text-sm">
+                        {editForm.formState.errors.description.message}
+                      </p>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -726,7 +885,9 @@ const editForm = useForm<EditDepartmentForm>({
                       <Label>Budget</Label>
                       <Input
                         type="number"
-                        {...editForm.register("budget", { valueAsNumber: true })}
+                        {...editForm.register("budget", {
+                          valueAsNumber: true,
+                        })}
                       />
                       {editForm.formState.errors.budget && (
                         <p className="text-red-500 text-sm">
