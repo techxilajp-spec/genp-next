@@ -10,7 +10,6 @@ import {
   Building2,
   DollarSign,
   TrendingUp,
-  MapPin,
   Plus,
 } from "lucide-react";
 
@@ -31,8 +30,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,15 +55,8 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useI18n } from "@/lib/i18n";
-import {
-  useCreateDepartment,
-  useDepartments,
-  useUpdateDepartment,
-} from "@/hooks/admin/departments";
-import { Department } from "@/types/api/admin/departments";
-import { encryptString, formatCurrency, formatPercentage } from "@/lib/utils";
-import { useTableState } from "@/hooks/useTableStateHook";
-import PaginationComponent from "@/components/app/pagination";
+import { useDepartmentDetail, useUpdateDepartment } from "@/hooks/admin/departments";
+import { decryptString, formatCurrency } from "@/lib/utils";
 import { Skeleton } from "./ui/skeleton";
 import { toast } from "sonner";
 import { useUsersNames } from "@/hooks/admin/users";
@@ -74,7 +64,7 @@ import z from "zod";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "./ui/form";
-import { useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useModal } from "@/hooks/useModalHook";
 
 const departmentSchema = z.object({
@@ -91,121 +81,28 @@ const departmentSchema = z.object({
 
 export type DepartmentForm = z.infer<typeof departmentSchema>;
 
-export function DepartmentsSection() {
+export function DepartmentsDetailsSection() {
   const { t } = useI18n();
-  const router = useRouter();
+  const params = useParams();
 
-  const departmentTable = useTableState(10); // default page size is 10 for departments
   const addModal = useModal();
   const editModal = useModal();
+  const [departmentId, setDepartmentId] = useState<string | null>(null); // Department id
 
   const {
-    data: departments,
-    isLoading: departmentsLoading,
-    error: departmentsError,
-    isError: departmentsIsError,
-    refetch: refetchDepartments,
-  } = useDepartments(
-    departmentTable.page,
-    departmentTable.pageSize,
-    departmentTable.keyword
-  ); // Fetch departments data
+    data: departmentDetail,
+    error: departmentDetailError,
+    isError: departmentDetailIsError,
+    isLoading: departmentDetailLoading,
+    refetch: refetchDepartmentDetail,
+  } = useDepartmentDetail(departmentId ?? ""); // Fetch department employees
 
   const { data: usersNames } = useUsersNames(); // Fetch users names
 
   const { mutateAsync: updateDepartment } = useUpdateDepartment(); // Update department
-  const { mutateAsync: createDepartment } = useCreateDepartment(); // Create department
-  const [selectedDepartment, setSelectedDepartment] =
-    useState<Department | null>(null); // Selected department
-
-  // Get level badge
-  const getLevelBadge = (level: string) => {
-    switch (level) {
-      case "executive":
-        return (
-          <Badge className="bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0">
-            {level.toUpperCase()}
-          </Badge>
-        );
-      case "management":
-        return (
-          <Badge className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0">
-            {level.toUpperCase()}
-          </Badge>
-        );
-      case "operational":
-        return (
-          <Badge className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white border-0">
-            {level.toUpperCase()}
-          </Badge>
-        );
-      case "support":
-        return (
-          <Badge className="bg-gradient-to-r from-orange-500 to-orange-600 text-white border-0">
-            {level.toUpperCase()}
-          </Badge>
-        );
-      case "department":
-        return (
-          <Badge className="bg-gradient-to-r from-orange-500 to-orange-600 text-white border-0">
-            {level.toUpperCase()}
-          </Badge>
-        );
-      case "team":
-        return (
-          <Badge className="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white border-0">
-            {level.toUpperCase()}
-          </Badge>
-        );
-      default:
-        return <Badge variant="secondary">{level}</Badge>;
-    }
-  };
-
-  // Get status badge
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "active":
-        return (
-          <Badge className="bg-gradient-to-r from-emerald-500 to-green-600 text-white border-0">
-            {t.common.active}
-          </Badge>
-        );
-      case "inactive":
-        return (
-          <Badge className="bg-gradient-to-r from-red-500 to-red-600 text-white border-0">
-            {t.common.inactive}
-          </Badge>
-        );
-      case "restructuring":
-        return (
-          <Badge className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white border-0">
-            Restructuring
-          </Badge>
-        );
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
-    }
-  };
 
   // Edit department form
   const editForm = useForm<DepartmentForm>({
-    resolver: zodResolver(departmentSchema),
-    defaultValues: {
-      department_name: "",
-      code: "",
-      manager_id: "",
-      level: undefined,
-      budget: 0 as number,
-      description: "",
-      location: "",
-      phone: "",
-      email: "",
-    },
-  });
-
-  // Add department form
-  const addForm = useForm<DepartmentForm>({
     resolver: zodResolver(departmentSchema),
     defaultValues: {
       department_name: "",
@@ -233,13 +130,13 @@ export function DepartmentsSection() {
         location: data.location || "",
         phone: data.phone || "",
         email: data.email || "",
-        department_id: selectedDepartment?.department_id || "",
-        status: selectedDepartment?.status || false,
+        department_id: departmentDetail?.data?.department_id || "",
+        status: departmentDetail?.data?.status || false,
       },
       {
         onSuccess: () => {
           toast.success("Department updated successfully");
-          refetchDepartments();
+          refetchDepartmentDetail();
           editForm.reset();
           editModal.setOpen(false);
         },
@@ -254,51 +151,42 @@ export function DepartmentsSection() {
     );
   };
 
-  // Handle add department form submission
-  const onSubmitAdd = async (data: DepartmentForm) => {
-    await createDepartment(
-      {
-        department_name: data.department_name,
-        description: data.description || "",
-        code: data.code,
-        manager_id: data.manager_id,
-        level: data.level,
-        budget: data.budget,
-        location: data.location || "",
-        phone: data.phone || "",
-        email: data.email || "",
-        status: true,
-      },
-      {
-        onSuccess: () => {
-          toast.success("Department added successfully");
-          refetchDepartments();
-          addForm.reset();
-          addModal.setOpen(false);
-        },
-        onError: (error) => {
-          toast.error(
-            error instanceof Error
-              ? error.message
-              : "Failed to update department"
-          );
-        },
-      }
-    );
-  };
-
-  // Handle navigation to a department's details page
-  const handleToDepartment = (id: string) => {
-    const encryptedId = encryptString(id);
-    router.push(`/admin/departments/${encryptedId}`);
-  };
-
-  // Handle error for departments
+  // Get department id from slug
   useEffect(() => {
-    if (departmentsError || departmentsIsError) {
-      toast.error(departmentsError?.message || "Failed to fetch departments");
+    if (params.id) {
+      const decryptedDepartmentId = decryptString(params.id as string);
+      setDepartmentId(decryptedDepartmentId);
     }
-  }, [departmentsError, departmentsIsError]);
+  }, [params.id]);
+
+  useEffect(() => {
+    if (departmentDetail) {
+      editForm.reset({
+        department_name: departmentDetail.data.department_name,
+        code: departmentDetail.data.code,
+        manager_id: departmentDetail.data.manager_id,
+        level: departmentDetail.data.level.toLowerCase() as
+          | "executive"
+          | "management"
+          | "operational"
+          | "support",
+        budget: departmentDetail.data.budget,
+        description: departmentDetail.data.description,
+        location: departmentDetail.data.location,
+        phone: departmentDetail.data.phone,
+        email: departmentDetail.data.email,
+      });
+    }
+  }, [departmentDetail, editForm]);
+
+  // Handle department employees error
+  useEffect(() => {
+    if (departmentDetailError || departmentDetailIsError) {
+      toast.error(
+        departmentDetailError?.message || "Failed to fetch department detail"
+      );
+    }
+  }, [departmentDetailError, departmentDetailIsError]);
 
   return (
     <div className="space-y-6">
@@ -316,19 +204,19 @@ export function DepartmentsSection() {
             <DialogTrigger asChild>
               <Button className="w-full lg:w-auto bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300">
                 <Plus className="mr-2 h-4 w-4" />
-                {t.departments.addDepartment}
+                {t.departments.addEmployee}
               </Button>
             </DialogTrigger>
             <DialogContent className="w-[95vw] max-w-2xl mx-auto max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>{t.departments.addDepartment}</DialogTitle>
+                <DialogTitle>{t.departments.addEmployee}</DialogTitle>
                 <DialogDescription>
                   Create a new department for your organization
                 </DialogDescription>
               </DialogHeader>
 
-              <Form {...addForm}>
-                <form onSubmit={addForm.handleSubmit(onSubmitAdd)}>
+              {/* <Form {...addForm}>
+                <form onSubmit={() => {}}>
                   <div className="grid gap-4 py-4">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                       <div className="space-y-2">
@@ -516,7 +404,7 @@ export function DepartmentsSection() {
                     <Button type="submit">Save</Button>
                   </DialogFooter>
                 </form>
-              </Form>
+              </Form> */}
             </DialogContent>
           </Dialog>
         </div>
@@ -590,23 +478,18 @@ export function DepartmentsSection() {
                 </CardDescription>
               </div>
               <div className="flex items-center space-x-2">
-                <Search
-                  className="h-4 w-4 text-slate-500"
-                  onClick={() =>
-                    departmentTable.setKeyword(departmentTable.tempKeyword)
-                  }
-                />
+                <Search className="h-4 w-4 text-slate-500" />
                 <Input
                   placeholder="Search departments..."
-                  value={departmentTable.tempKeyword}
-                  onChange={(e) =>
-                    departmentTable.setTempKeyword(e.target.value)
-                  }
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      departmentTable.setKeyword(departmentTable.tempKeyword);
-                    }
-                  }}
+                  value={""}
+                  // onChange={(e) =>
+                  //   employeeTable.setTempKeyword(e.target.value)
+                  // }
+                  // onKeyDown={(e) => {
+                  //   if (e.key === "Enter") {
+                  //     employeeTable.setKeyword(employeeTable.tempKeyword);
+                  //   }
+                  // }}
                   className="w-full lg:w-64 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
                 />
               </div>
@@ -617,100 +500,42 @@ export function DepartmentsSection() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="min-w-[200px]">Department</TableHead>
-                    <TableHead className="min-w-[120px]">Manager</TableHead>
-                    <TableHead className="min-w-[100px]">Employees</TableHead>
-                    <TableHead className="min-w-[100px]">Level</TableHead>
-                    <TableHead className="min-w-[120px]">Budget</TableHead>
-                    <TableHead className="min-w-[100px]">Performance</TableHead>
-                    <TableHead className="min-w-[80px]">Status</TableHead>
+                    <TableHead className="min-w-[200px]">
+                      Employee Name
+                    </TableHead>
+                    <TableHead className="min-w-[120px]">Role</TableHead>
+                    <TableHead className="min-w-[120px]">Join Date</TableHead>
                     <TableHead className="text-right min-w-[80px]">
                       Actions
                     </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {departments?.data?.data?.map((department) => (
-                    <TableRow key={department.department_id}>
+                  {departmentDetail?.data?.employees?.map((employee) => (
+                    <TableRow key={employee.user_id}>
                       <TableCell className="min-w-[200px]">
                         <div>
                           <div className="font-medium text-sm lg:text-base flex items-center space-x-2">
-                            <span>{department.department_name}</span>
-                            <Badge variant="outline" className="text-xs">
-                              {department.code}
-                            </Badge>
+                            <span>{employee.username}</span>
                           </div>
                           <div className="text-xs lg:text-sm text-muted-foreground line-clamp-2">
-                            {department.description}
-                          </div>
-                          <div className="flex items-center space-x-4 mt-1 text-xs text-slate-500">
-                            {department.location && (
-                              <div className="flex items-center space-x-1">
-                                <MapPin className="h-3 w-3" />
-                                <span>{department.location}</span>
-                              </div>
-                            )}
+                            {employee.email}
                           </div>
                         </div>
                       </TableCell>
                       <TableCell className="min-w-[120px]">
                         <div className="flex items-center space-x-2">
-                          <Avatar className="h-6 w-6">
-                            <AvatarFallback className="text-xs">
-                              {department.manager_name
-                                ?.slice(0, 2)
-                                .toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="min-w-0">
-                            <div className="text-xs lg:text-sm font-medium truncate">
-                              {department.manager_name}
-                            </div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="min-w-[100px]">
-                        <div className="flex items-center space-x-1">
-                          <Users className="h-3 w-3 text-slate-500" />
                           <span className="text-xs lg:text-sm font-medium">
-                            {department.employee_count}
+                            {employee.role}
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell className="min-w-[100px]">
-                        {getLevelBadge(department.level.toLowerCase())}
-                      </TableCell>
                       <TableCell className="min-w-[120px]">
-                        <div className="text-xs lg:text-sm font-medium">
-                          {formatCurrency(department.budget)}
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs lg:text-sm font-medium">
+                            {employee.joined_at}
+                          </span>
                         </div>
-                      </TableCell>
-                      <TableCell className="min-w-[100px]">
-                        <div className="space-y-1">
-                          <div className="text-xs">
-                            <span className="text-slate-500">Completion:</span>
-                            <span className="ml-1 font-medium">
-                              {formatPercentage(
-                                department.department_completion_percentage
-                              )}
-                            </span>
-                          </div>
-                          <div className="text-xs">
-                            <span className="text-slate-500">
-                              Productivity:
-                            </span>
-                            <span className="ml-1 font-medium">
-                              {formatPercentage(
-                                department.department_productivity_percentage
-                              )}
-                            </span>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="min-w-[80px]">
-                        {getStatusBadge(
-                          department.status ? "active" : "inactive"
-                        )}
                       </TableCell>
                       <TableCell className="text-right min-w-[80px]">
                         <DropdownMenu>
@@ -721,18 +546,12 @@ export function DepartmentsSection() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem
-                              onClick={() => {
-                                setSelectedDepartment(department);
-                                editForm.reset(department);
-                                editModal.setOpen(true);
-                              }}
+                              onClick={() => editModal.setOpen(true)}
                             >
                               <Edit className="mr-2 h-4 w-4" />
                               {t.common.edit}
                             </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleToDepartment(department.department_id)}
-                            >
+                            <DropdownMenuItem>
                               <Building2 className="mr-2 h-4 w-4" />
                               {t.departments.viewDepartment}
                             </DropdownMenuItem>
@@ -745,33 +564,23 @@ export function DepartmentsSection() {
                       </TableCell>
                     </TableRow>
                   ))}
-                  {departmentsLoading && (
+                  {departmentDetailLoading && (
                     <TableRow>
                       <TableCell colSpan={9} className="h-24 text-center">
                         <Skeleton className="h-10 w-full bg-slate-200 rounded" />
                       </TableCell>
                     </TableRow>
                   )}
-                  {departments?.data.data.length === 0 && (
+                  {departmentDetail?.data?.employees?.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={9} className="h-24 text-center">
-                        No departments found.
+                        No employees found.
                       </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
               </Table>
             </div>
-
-            {departments && departments?.data.data.length > 0 && (
-              <div className="flex w-full justify-end mt-4">
-                <PaginationComponent
-                  currentPage={departmentTable.page}
-                  totalPages={departmentTable.totalPages}
-                  onPageChange={(newPage) => departmentTable.setPage(newPage)}
-                />
-              </div>
-            )}
           </CardContent>
         </Card>
       </div>
@@ -783,8 +592,6 @@ export function DepartmentsSection() {
             <DialogTitle>{t.departments.editDepartment}</DialogTitle>
             <DialogDescription>Update department information</DialogDescription>
           </DialogHeader>
-
-          {selectedDepartment && (
             <Form {...editForm}>
               <form onSubmit={editForm.handleSubmit(onSubmitEdit)}>
                 <div className="grid gap-4 py-4">
@@ -955,7 +762,7 @@ export function DepartmentsSection() {
                 </DialogFooter>
               </form>
             </Form>
-          )}
+          
         </DialogContent>
       </Dialog>
     </div>

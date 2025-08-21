@@ -1,9 +1,12 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import CryptoJS from "crypto-js";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
+
+const ENCRYPTION_KEY = process.env.NEXT_PUBLIC_ENCRYPTION_KEY || "default_key";
 
 /**
  * Format a currency amount in Japanese Yen
@@ -29,3 +32,35 @@ export const formatPercentage = (number: number) => {
   return `${percentage}%`;
 };
 
+/**
+ * Encrypt a string using AES encryption.
+ * @param str - The plain string to encrypt
+ * @returns Encrypted string (Base64)
+ */
+export const encryptString = (data: string) => {
+  const cipherText = CryptoJS.AES.encrypt(
+    JSON.stringify(data),
+    ENCRYPTION_KEY
+  ).toString();
+  return btoa(cipherText)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, ""); // Make URL-safe
+};
+
+/**
+ * Decrypt an AES-encrypted string.
+ * @param encrypted - The encrypted string (Base64)
+ * @returns Decrypted plain text string
+ */
+export const decryptString = (cipherText: string) => {
+  try {
+    const base64CipherText = cipherText.replace(/-/g, "+").replace(/_/g, "/"); // Convert back to original Base64
+    const bytes = CryptoJS.AES.decrypt(atob(base64CipherText), ENCRYPTION_KEY);
+    return JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+  } catch (error) {
+    if (error) {
+      return null;
+    }
+  }
+};

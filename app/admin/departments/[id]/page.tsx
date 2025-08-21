@@ -1,4 +1,4 @@
-import { DepartmentsSection } from '@/components/departments-section'
+import { DepartmentsDetailsSection } from '@/components/departments-details-section'
 import { MobileHeader } from '@/components/mobile-header'
 
 export default function DepartmentDetailsPage() {
@@ -6,7 +6,7 @@ export default function DepartmentDetailsPage() {
     <>
       <MobileHeader title="Departments" />
       <div className="p-4 lg:p-6">
-        <DepartmentsSection />
+        <DepartmentsDetailsSection />
       </div>
     </>
   )

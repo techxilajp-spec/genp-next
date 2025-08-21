@@ -5,7 +5,7 @@ import {
 } from "@tanstack/react-query";
 import {
   DepartmentCreate,
-  DepartmentDetail,
+  DepartmentDetailResponse,
   DepartmentEmployees,
   DepartmentsResponse,
   DepartmentUpdate,
@@ -36,18 +36,16 @@ export const useDepartments = (
 /**
  * @description
  * Department Detail Hook
- * @returns {UseQueryResult<DepartmentDetail>}
+ * @returns {UseQueryResult<DepartmentDetailResponse>}
  */
 export const useDepartmentDetail = (
   id: string
-): UseQueryResult<DepartmentDetail> => {
+): UseQueryResult<DepartmentDetailResponse> => {
   return useQuery({
     queryKey: ["department-detail", id],
-    queryFn: () =>
-      axios.get("/api/admin/departments", {
-        params: { id },
-      }),
+    queryFn: () => axios.get("/api/admin/departments/" + id),
     select: (data) => data.data,
+    enabled: !!id,
   });
 };
 

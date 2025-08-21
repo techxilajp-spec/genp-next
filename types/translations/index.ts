@@ -196,9 +196,11 @@ export interface Translations {
       title: string
       subtitle: string
       addDepartment: string
+      addEmployee: string
       editDepartment: string
       deleteDepartment: string
       departmentList: string
+      employeeList: string
       departmentName: string
       description: string
       manager: string

@@ -74,6 +74,8 @@ import { DepartmentDetail } from "@/types/api/admin/departments";
  *                             type: string
  *                           email:
  *                             type: string
+ *                           role:
+ *                             type: string
  *                           joined_at:
  *                             type: string
  *             example:
@@ -99,6 +101,7 @@ import { DepartmentDetail } from "@/types/api/admin/departments";
  *                     user_id: "1",
  *                     username: "John Doe",
  *                     email: "john.doe@example.com",
+ *                     role: "manager",
  *                     joined_at: "2022-01-01T00:00:00.000Z"
  *                   }
  *                 ]
@@ -125,7 +128,8 @@ export const GET = async (
   const { data, error } = await supabase
     .from("department_with_employees")
     .select(`*`)
-    .eq("department_id", departmentId);
+    .eq("department_id", departmentId)
+    .single();
 
   if (error) {
     return errorResponse(

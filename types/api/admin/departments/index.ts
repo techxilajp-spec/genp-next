@@ -56,6 +56,12 @@ export interface DepartmentCreate {
   status: boolean;
 }
 
+export interface DepartmentDetailResponse {
+  success: boolean;
+  message: string;
+  data: DepartmentDetail;
+}
+
 export interface DepartmentDetail {
   department_id: string;
   department_name: string;
@@ -75,6 +81,7 @@ export interface DepartmentDetail {
     user_id: string;
     username: string;
     email: string;
+    role: string;
     joined_at: string;
   }[];
 }
