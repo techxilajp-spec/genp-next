@@ -214,6 +214,7 @@ export const en: Translations = {
     phone: 'Phone',
     email: 'Email',
     assignEmployee: 'Assign Employee',
+    viewDepartment: 'View Department',
     executiveLevel: 'Executive',
     managementLevel: 'Management',
     operationalLevel: 'Operational',

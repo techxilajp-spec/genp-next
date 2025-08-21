@@ -58,6 +58,8 @@ export const MESSAGES = {
     DEPARTMENTS: {
       FETCH_SUCCESS: "Departments Fetch Success",
       FETCH_FAILED: "Departments Fetch Failed",
+      FETCH_DETAIL_SUCCESS: "Department Details Fetch Success",
+      FETCH_DETAIL_FAILED: "Department Details Fetch Failed",
       CREATE_SUCCESS: "Department Create Success",
       CREATE_FAILED: "Department Create Failed",
       UPDATE_SUCCESS: "Department Update Success",

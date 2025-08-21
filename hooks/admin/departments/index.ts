@@ -5,6 +5,8 @@ import {
 } from "@tanstack/react-query";
 import {
   DepartmentCreate,
+  DepartmentDetail,
+  DepartmentEmployees,
   DepartmentsResponse,
   DepartmentUpdate,
 } from "@/types/api/admin/departments";
@@ -27,6 +29,40 @@ export const useDepartments = (
       axios.get("/api/admin/departments", {
         params: { page, pageSize, keyword },
       }),
+    select: (data) => data.data,
+  });
+};
+
+/**
+ * @description
+ * Department Detail Hook
+ * @returns {UseQueryResult<DepartmentDetail>}
+ */
+export const useDepartmentDetail = (
+  id: string
+): UseQueryResult<DepartmentDetail> => {
+  return useQuery({
+    queryKey: ["department-detail", id],
+    queryFn: () =>
+      axios.get("/api/admin/departments", {
+        params: { id },
+      }),
+    select: (data) => data.data,
+  });
+};
+
+/**
+ * @description
+ * Department Employees Hook
+ * @returns {UseQueryResult<DepartmentEmployees>}
+ */
+export const useDepartmentEmployees = (
+  id: string
+): UseQueryResult<DepartmentEmployees> => {
+  return useQuery({
+    queryKey: ["department-employees", id],
+    queryFn: () =>
+      axios.get("/api/admin/departments/" + id + "/employees"),
     select: (data) => data.data,
   });
 };

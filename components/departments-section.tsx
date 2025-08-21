@@ -713,8 +713,8 @@ export function DepartmentsSection() {
                               {t.common.edit}
                             </DropdownMenuItem>
                             <DropdownMenuItem>
-                              <Users className="mr-2 h-4 w-4" />
-                              {t.departments.assignEmployee}
+                              <Building2 className="mr-2 h-4 w-4" />
+                              {t.departments.viewDepartment}
                             </DropdownMenuItem>
                             <DropdownMenuItem className="text-red-600">
                               <Trash2 className="mr-2 h-4 w-4" />

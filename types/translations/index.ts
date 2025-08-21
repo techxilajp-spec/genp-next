@@ -211,6 +211,7 @@ export interface Translations {
       phone: string
       email: string
       assignEmployee: string
+      viewDepartment: string
       executiveLevel: string
       managementLevel: string
       operationalLevel: string

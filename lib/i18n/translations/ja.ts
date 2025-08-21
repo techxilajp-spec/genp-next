@@ -214,6 +214,7 @@ export const ja: Translations = {
     phone: '電話',
     email: 'メール',
     assignEmployee: '従業員を割り当て',
+    viewDepartment: '部署を表示',
     executiveLevel: '役員',
     managementLevel: '管理職',
     operationalLevel: '運営',
