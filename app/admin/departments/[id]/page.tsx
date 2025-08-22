@@ -7,6 +7,7 @@ export default function DepartmentDetailsPage() {
       <MobileHeader title="Departments" />
       <div className="p-4 lg:p-6">
         <DepartmentsDetailsSection />
+        
       </div>
     </>
   )
