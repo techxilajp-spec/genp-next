@@ -1,3 +1,16 @@
+export interface DepartmentSummaryResponse {
+  success: boolean;
+  message: string;
+  data: DepartmentSummary;
+}
+
+export interface DepartmentSummary {
+  total_departments: number;
+  total_employees: number;
+  avg_employees_per_department: number;
+  total_budget: number;
+}
+
 export interface DepartmentsResponse {
   success: boolean;
   message: string;
@@ -77,13 +90,15 @@ export interface DepartmentDetail {
   status: boolean;
   created_at?: string;
   updated_at?: string;
-  employees: {
-    user_id: string;
-    username: string;
-    email: string;
-    role: string;
-    joined_at: string;
-  }[];
+  employees: DepartmentEmployee[];
+}
+
+export interface DepartmentEmployee {
+  user_id: string;
+  username: string;
+  email: string;
+  role: string;
+  joined_at: string;
 }
 
 export interface DepartmentEmployees {

@@ -8,6 +8,7 @@ import {
   DepartmentDetailResponse,
   DepartmentEmployees,
   DepartmentsResponse,
+  DepartmentSummaryResponse,
   DepartmentUpdate,
 } from "@/types/api/admin/departments";
 import axios from "axios";
@@ -35,6 +36,20 @@ export const useDepartments = (
 
 /**
  * @description
+ * Department Summary Hook
+ * @returns {UseQueryResult<DepartmentSummaryResponse>}
+ */
+export const useDepartmentSummary =
+  (): UseQueryResult<DepartmentSummaryResponse> => {
+    return useQuery({
+      queryKey: ["department-summary"],
+      queryFn: () => axios.get("/api/admin/departments/summary"),
+      select: (data) => data.data,
+    });
+  };
+
+/**
+ * @description
  * Department Detail Hook
  * @returns {UseQueryResult<DepartmentDetailResponse>}
  */
@@ -59,8 +74,7 @@ export const useDepartmentEmployees = (
 ): UseQueryResult<DepartmentEmployees> => {
   return useQuery({
     queryKey: ["department-employees", id],
-    queryFn: () =>
-      axios.get("/api/admin/departments/" + id + "/employees"),
+    queryFn: () => axios.get("/api/admin/departments/" + id + "/employees"),
     select: (data) => data.data,
   });
 };
@@ -101,6 +115,27 @@ export const useUpdateDepartment = (): UseMutationResult<
       const res = await axios.patch<DepartmentUpdate>(
         `/api/admin/departments/${department.department_id}/update`,
         department
+      );
+      return res.data;
+    },
+  });
+};
+
+/**
+ * @description
+ * Update Department Status Hook
+ * @returns {UseMutationResult<string>}
+ */
+export const useUpdateDepartmentStatus = (): UseMutationResult<
+  string,
+  Error,
+  { id: string; status: boolean }
+> => {
+  return useMutation<string, Error, { id: string; status: boolean }>({
+    mutationFn: async ({ id, status }: { id: string; status: boolean }) => {
+      const res = await axios.patch<string>(
+        `/api/admin/departments/${id}/status`,
+        { status }
       );
       return res.data;
     },

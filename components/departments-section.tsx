@@ -12,6 +12,7 @@ import {
   TrendingUp,
   MapPin,
   Plus,
+  Check,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -34,12 +35,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -61,21 +56,34 @@ import { useI18n } from "@/lib/i18n";
 import {
   useCreateDepartment,
   useDepartments,
+  useDepartmentSummary,
   useUpdateDepartment,
+  useUpdateDepartmentStatus,
 } from "@/hooks/admin/departments";
 import { Department } from "@/types/api/admin/departments";
 import { encryptString, formatCurrency, formatPercentage } from "@/lib/utils";
 import { useTableState } from "@/hooks/useTableStateHook";
 import PaginationComponent from "@/components/app/pagination";
-import { Skeleton } from "./ui/skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useUsersNames } from "@/hooks/admin/users";
 import z from "zod";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Form } from "./ui/form";
+import { Form } from "@/components/ui/form";
 import { useRouter } from "next/navigation";
 import { useModal } from "@/hooks/useModalHook";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 
 const departmentSchema = z.object({
   department_name: z.string().min(1, "Department name is required"),
@@ -98,6 +106,9 @@ export function DepartmentsSection() {
   const departmentTable = useTableState(10); // default page size is 10 for departments
   const addModal = useModal();
   const editModal = useModal();
+  const deleteModal = useModal();
+  const [selectedDepartment, setSelectedDepartment] =
+    useState<Department | null>(null); // Selected department
 
   const {
     data: departments,
@@ -112,11 +123,11 @@ export function DepartmentsSection() {
   ); // Fetch departments data
 
   const { data: usersNames } = useUsersNames(); // Fetch users names
+  const { data: departmentSummary } = useDepartmentSummary(); // Fetch department summary
 
   const { mutateAsync: updateDepartment } = useUpdateDepartment(); // Update department
   const { mutateAsync: createDepartment } = useCreateDepartment(); // Create department
-  const [selectedDepartment, setSelectedDepartment] =
-    useState<Department | null>(null); // Selected department
+  const { mutateAsync: updateDepartmentStatus } = useUpdateDepartmentStatus(); // Update department status
 
   // Get level badge
   const getLevelBadge = (level: string) => {
@@ -281,6 +292,29 @@ export function DepartmentsSection() {
             error instanceof Error
               ? error.message
               : "Failed to update department"
+          );
+        },
+      }
+    );
+  };
+
+  // Handle update department status
+  const handleToUpdateStatus = async (id: string, status: boolean) => {
+    await updateDepartmentStatus(
+      {
+        id,
+        status,
+      },
+      {
+        onSuccess: () => {
+          toast.success("Department status updated successfully");
+          refetchDepartments();
+        },
+        onError: (error) => {
+          toast.error(
+            error instanceof Error
+              ? error.message
+              : "Failed to update department status"
           );
         },
       }
@@ -531,7 +565,9 @@ export function DepartmentsSection() {
               <Building2 className="h-4 w-4 text-blue-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-slate-900">10</div>
+              <div className="text-2xl font-bold text-slate-900">
+                {departmentSummary?.data?.total_departments}
+              </div>
               <p className="text-xs text-slate-600">Active departments</p>
             </CardContent>
           </Card>
@@ -544,7 +580,9 @@ export function DepartmentsSection() {
               <Users className="h-4 w-4 text-emerald-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-slate-900">10</div>
+              <div className="text-2xl font-bold text-slate-900">
+                {departmentSummary?.data?.total_employees}
+              </div>
               <p className="text-xs text-slate-600">Across all departments</p>
             </CardContent>
           </Card>
@@ -557,7 +595,9 @@ export function DepartmentsSection() {
               <TrendingUp className="h-4 w-4 text-purple-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-slate-900">10</div>
+              <div className="text-2xl font-bold text-slate-900">
+                {departmentSummary?.data?.avg_employees_per_department}
+              </div>
               <p className="text-xs text-slate-600">Employees per department</p>
             </CardContent>
           </Card>
@@ -571,7 +611,7 @@ export function DepartmentsSection() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-slate-900">
-                {formatCurrency(1000)}
+                {formatCurrency(departmentSummary?.data?.total_budget || 0)}
               </div>
               <p className="text-xs text-slate-600">Annual budget allocation</p>
             </CardContent>
@@ -713,35 +753,68 @@ export function DepartmentsSection() {
                         )}
                       </TableCell>
                       <TableCell className="text-right min-w-[80px]">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
+                        <Popover>
+                          <PopoverTrigger asChild>
                             <Button variant="ghost" className="h-8 w-8 p-0">
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
+                          </PopoverTrigger>
+
+                          <PopoverContent
+                            align="end"
+                            className="flex flex-col p-2 w-[200px]"
+                          >
+                            <button
                               onClick={() => {
                                 setSelectedDepartment(department);
                                 editForm.reset(department);
                                 editModal.setOpen(true);
                               }}
+                              className="flex items-center px-2 py-1 hover:bg-gray-100 text-sm"
                             >
                               <Edit className="mr-2 h-4 w-4" />
                               {t.common.edit}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleToDepartment(department.department_id)}
+                            </button>
+
+                            <button
+                              onClick={() =>
+                                handleToDepartment(department.department_id)
+                              }
+                              className="flex items-center px-2 py-1 hover:bg-gray-100 text-sm"
                             >
                               <Building2 className="mr-2 h-4 w-4" />
                               {t.departments.viewDepartment}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600">
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              {t.common.delete}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                if (department.status) {
+                                  setSelectedDepartment(department);
+                                  deleteModal.setOpen(true);
+                                } else {
+                                  handleToUpdateStatus(
+                                    department.department_id,
+                                    !department.status
+                                  );
+                                }
+                              }}
+                              className={`flex items-center px-2 py-1 hover:bg-gray-100 text-sm ${
+                                department.status
+                                  ? "text-red-600"
+                                  : "text-green-600"
+                              }`}
+                            >
+                              {department.status ? (
+                                <Trash2 className="mr-2 h-4 w-4" />
+                              ) : (
+                                <Check className="mr-2 h-4 w-4" />
+                              )}
+                              {department.status
+                                ? t.common.terminate
+                                : t.common.activate}
+                            </button>
+                          </PopoverContent>
+                        </Popover>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -958,6 +1031,30 @@ export function DepartmentsSection() {
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteModal.open} onOpenChange={deleteModal.setOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will terminate your department.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                handleToUpdateStatus(
+                  selectedDepartment?.department_id || "",
+                  !selectedDepartment?.status
+                );
+              }}
+            >
+              Continue
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -68,6 +68,8 @@ export const MESSAGES = {
       DELETE_FAILED: "Department Delete Failed",
       DEPARTMENT_IN_USE: "Department is already in use",
       ID_REQUIRED: "Department ID is required",
+      UPDATE_STATUS_SUCCESS: "Department Status Update Success",
+      UPDATE_STATUS_FAILED: "Department Status Update Failed",
     },
     USERS: {
       FETCH_SUCCESS: "Users Fetch Success",

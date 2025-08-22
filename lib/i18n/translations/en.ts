@@ -17,6 +17,8 @@ export const en: Translations = {
     save: 'Save',
     cancel: 'Cancel',
     delete: 'Delete',
+    terminate: 'Terminate',
+    activate: 'Activate',
     edit: 'Edit',
     add: 'Add',
     search: 'Search',

@@ -1,6 +1,12 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import CryptoJS from "crypto-js";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -63,4 +69,15 @@ export const decryptString = (cipherText: string) => {
       return null;
     }
   }
+};
+
+/**
+ * Convert date to locale date time
+ * @param date - Date
+ * @returns Locale date time (ja-JP)
+ * @author ヤン
+ */
+export const convertToLocaleDateTime = (date: string, city: string, format: string = "YYYY/MM/DD") => {
+  const convertedTime = dayjs.utc(date).tz(city).format(format);
+  return convertedTime;
 };

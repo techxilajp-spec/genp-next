@@ -17,6 +17,8 @@ export const ja: Translations = {
     save: '保存',
     cancel: 'キャンセル',
     delete: '削除',
+    terminate: '終了',
+    activate: 'アクティベート',
     edit: '編集',
     add: '追加',
     search: '検索',

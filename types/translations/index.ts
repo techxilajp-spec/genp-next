@@ -15,6 +15,8 @@ export interface Translations {
       save: string
       cancel: string
       delete: string
+      terminate: string
+      activate: string
       edit: string
       add: string
       search: string
