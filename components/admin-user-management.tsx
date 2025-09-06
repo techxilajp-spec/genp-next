@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Plus,
   MoreHorizontal,
@@ -73,8 +73,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdvancedFilters, FilterState } from "@/components/advanced-filters";
-import { User } from "@/types/users";
-
+import { useUsersNames, useUser, useUserDepartmentNames, useCreateUser } from "@/hooks/admin/users";
+import { Users, UserDepartmentResponse } from "@/types/api/admin/users";
+import { useTableState } from "@/hooks/useTableStateHook";
+import { Form } from "@/components/ui/form";
+import z from "zod";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
+import { useModal } from "@/hooks/useModalHook";
+import { useI18n } from "@/lib/i18n";
 // Mock data with enhanced user information
 const mockUsers = [
   {
@@ -199,6 +207,16 @@ const mockUsers = [
   },
 ];
 
+const userSchema = z.object({ 
+  username : z.string().min(1, "User name is required"),
+  email : z.string().min(1, "Email is required"),
+  phone_number : z.string().min(1, "Phone is required"),
+  user_type : z.enum(["Member", "Admin"]),
+  department : z.string().min(1, "Department is required")
+})
+
+export type UserForm = z.infer<typeof userSchema>;
+
 const deactivationReasons = [
   "Policy violation",
   "Inactivity",
@@ -211,12 +229,85 @@ const deactivationReasons = [
 ];
 
 export function AdminUserManagement() {
-  const [users, setUsers] = useState(mockUsers);
+  const [users, setUsers] = useState<Users[]>([]);
+  const userTable = useTableState(10);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedUser, setSelectedUser] = useState<Users | null>(null);
   const [deactivationReason, setDeactivationReason] = useState("");
   const [customReason, setCustomReason] = useState("");
+  const [departmentList, setDepartmentList] = useState<UserDepartmentResponse[]>([]);
+  const addModal = useModal();
+  const { t } = useI18n();
+  const { 
+    data : usersData,
+    isLoading : userLoading, 
+    error : userError, 
+    isError : userIsError,
+    refetch : refetchUsers,
+  } = useUser(
+    userTable.page,
+    userTable.pageSize,
+    userTable.keyword
+  ); // Fetch user data
+
+  const {
+    data: departments,
+  } = useUserDepartmentNames();
+
+  const {mutateAsync : createUser} = useCreateUser();
+
+  
+  useEffect(() => { 
+    console.log("User data" ,usersData);
+    if(usersData?.data?.data && Array.isArray(usersData?.data?.data)) { 
+      setUsers(usersData.data.data)
+    }
+    console.log("Department data :", departments);
+    if(departments && Array.isArray(departments)) { 
+      setDepartmentList(departments)
+    }
+  }, [usersData, departments])
+
+  //Add user form 
+  const addForm = useForm<UserForm>({ 
+    resolver : zodResolver(userSchema),
+    defaultValues : { 
+      username : "",
+      email : "",
+      phone_number : "",
+      user_type : undefined,
+      department : ""
+    }
+  })
+
+  //Handle add user form submission 
+  const onSubmitAdd = async(data : UserForm) => { 
+    await createUser( 
+      { 
+        username : data.username,
+        email : data.email,
+        phone_number : data.phone_number,
+        user_type : data.user_type,
+        department : data.department
+      }, 
+      { 
+        onSuccess : () => { 
+          toast.success("User added successfully"); 
+          refetchUsers();
+          addForm.reset();
+          addModal.setOpen(false);
+        }, 
+        onError : (error) => { 
+          toast.error( 
+            error instanceof Error 
+            ? error.message
+            : "Failed to add user"
+          )
+        }
+      }
+    )
+  }
 
   const [filters, setFilters] = useState<FilterState>({
     search: "",
@@ -534,59 +625,127 @@ export function AdminUserManagement() {
                 Create a new user account with appropriate permissions
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="username" className="text-right">
-                  Username
-                </Label>
-                <Input id="username" className="col-span-3" />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="email" className="text-right">
-                  Email
-                </Label>
-                <Input id="email" type="email" className="col-span-3" />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="phone" className="text-right">
-                  Phone
-                </Label>
-                <Input id="phone" className="col-span-3" />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="user_type" className="text-right">
-                  Type
-                </Label>
-                <Select>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select user type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="member">Member</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="department" className="text-right">
-                  Department
-                </Label>
-                <Select>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Management">Management</SelectItem>
-                    <SelectItem value="Development">Development</SelectItem>
-                    <SelectItem value="Design">Design</SelectItem>
-                    <SelectItem value="Marketing">Marketing</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="submit">Create User</Button>
-            </DialogFooter>
+            <Form {...addForm}>
+              <form onSubmit={addForm.handleSubmit(onSubmitAdd)}>
+                <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="username" className="text-right">
+                        Username
+                      </Label>
+                      <Input id="username" className="col-span-3" placeholder="username"
+                        {...addForm.register("username")}
+                      />
+                      {addForm.formState.errors.username && ( 
+                        <p className="text-red-500 text-sm col-span-3 col-start-2"> 
+                          {addForm.formState.errors.username.message}
+                        </p>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="email" className="text-right">
+                        Email
+                      </Label>
+                      <Input id="email" type="email" className="col-span-3" placeholder="eg: example@example.co"
+                        {...addForm.register("email")}
+                      />
+                      {addForm.formState.errors.email && ( 
+                        <p className="text-red-500 text-sm col-span-3 col-start-2"> 
+                          {addForm.formState.errors.email.message}
+                        </p>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="phone" className="text-right">
+                        Phone
+                      </Label>
+                      <Input id="phone" placeholder="eg: +1234567890" className="col-span-3" 
+                        {...addForm.register("phone_number")}
+                      />
+                      {addForm.formState.errors.phone_number && ( 
+                        <p className="text-red-500 text-sm col-span-3 col-start-2"> 
+                          {addForm.formState.errors.phone_number.message}
+                        </p>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="user_type" className="text-right">
+                        Type
+                      </Label>
+                      <Controller 
+                        control={addForm.control}
+                        name="user_type"
+                        render={({ field }) => ( 
+                          <Select 
+                            value={field.value}
+                            onValueChange={(value) => 
+                              field.onChange( 
+                                value as 
+                                  | "Member"
+                                  | "Admin"
+                              )
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select User Type"/>
+                            </SelectTrigger>
+                            <SelectContent> 
+                              <SelectItem value="Member">
+                                {t.users.member}
+                              </SelectItem>
+                              <SelectItem value="Admin"> 
+                                {t.users.admin}
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
+                      > 
+                      </Controller>
+                      {addForm.formState.errors.user_type && ( 
+                        <p className="text-red-500 text-sm col-span-3 col-start-2"> 
+                          {addForm.formState.errors.user_type.message}
+                        </p>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="department" className="text-right">
+                        Department
+                      </Label>
+                      <Controller
+                          control={addForm.control}
+                          name="department"
+                          render={({ field }) => (
+                            <Select
+                              value={field.value}
+                              onValueChange={field.onChange}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select Manager" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {departments?.data && departments?.data.map((department) => ( 
+                                  <SelectItem 
+                                    key={department.department_id}
+                                    value={department.department_id.toString()}
+                                    >
+                                      {department.name}
+                                    </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        />
+                      {addForm.formState.errors.department && ( 
+                        <p className="text-red-500 text-sm col-span-3 col-start-2"> 
+                          {addForm.formState.errors.department.message}
+                        </p>
+                      )}
+                      </div>
+                  </div>
+                <DialogFooter>
+                  <Button type="submit">Create User</Button>
+                </DialogFooter>
+              </form>
+            </Form>
           </DialogContent>
         </Dialog>
       </div>
@@ -804,15 +963,15 @@ export function AdminUserManagement() {
                       </div>
                     </TableCell>
                     <TableCell className="min-w-[150px]">
-                      {user.deactivation_reason && (
+                      {user.user_deactivation_history?.reason && (
                         <div className="text-xs">
                           <div className="font-medium text-red-600">
-                            {user.deactivation_reason}
+                            {user.user_deactivation_history.reason}
                           </div>
-                          {user.deactivated_at && (
+                          {user.user_deactivation_history.performed_at && (
                             <div className="text-muted-foreground">
                               {new Date(
-                                user.deactivated_at
+                                user.user_deactivation_history.performed_at
                               ).toLocaleDateString()}
                             </div>
                           )}
