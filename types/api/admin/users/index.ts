@@ -18,7 +18,7 @@ export interface Users {
   email: string;
   phone_number: string;
   user_photo: string;
-  user_type: string;
+  user_type: "admin" | "member";
   department: string;
   is_active: boolean;
   account_status: string;
@@ -32,7 +32,20 @@ export interface Users {
   is_locked: boolean;
   locked_until: string | null;
   user_deactivation_history: UserDeactivationHistory | null;
-  role_permissions: string[];
+  role_permissions: string;
+}
+
+export interface UserUpdate {
+  user_id: string;
+  username: string;
+  email: string;
+  phone_number: string;
+  user_type: string;
+  department_id: string;
+  email_verified: boolean;
+  phone_verified: boolean;
+  two_factor_enabled: boolean;
+  role_permissions: string;
 }
 
 export interface UserResponse {

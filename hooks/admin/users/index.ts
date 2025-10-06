@@ -10,6 +10,7 @@ import {
   UserResponse,
   UserDepartmentResponse,
   UserCreate,
+  UserUpdate,
 } from "@/types/api/admin/users";
 import { useQuery } from "@tanstack/react-query";
 /**
@@ -71,7 +72,28 @@ export const useCreateUser = (): UseMutationResult<
 > => {
   return useMutation<UserCreate, Error, UserCreate>({
     mutationFn: async (user) => {
-      const res = await axios.post<UserCreate>(`api/admin/users/create`, user);
+      const res = await axios.post<UserCreate>(`/api/admin/users/create`, user);
+      return res.data;
+    },
+  });
+};
+
+/**
+ * @description
+ * Update User Hook
+ * @return {UseMutationResult<UserUpdate>}
+ */
+export const useUpdateUser = (): UseMutationResult<
+  UserUpdate,
+  Error,
+  UserUpdate
+> => {
+  return useMutation<UserUpdate, Error, UserUpdate>({
+    mutationFn: async (user) => {
+      const res = await axios.patch<UserUpdate>(
+        `/api/admin/users/${user.user_id}/update`,
+        user
+      );
       return res.data;
     },
   });
