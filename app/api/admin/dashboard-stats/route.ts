@@ -102,10 +102,62 @@ export const GET = async (_req: NextRequest): Promise<Response> => {
         .select("*")
         .eq("type", "expense");
 
-    if (userError || taskError || revenueError || pendingPaymentsError || expenseError) {
+    const { data: tasksThisMonth, error: tasksThisMonthError } = await supabase
+        .from("tasks")
+        .select(`
+            task_id,
+            status,
+            users (
+                user_id,
+                username
+            )
+        `)
+        .gte("start_time", startOfMonth.toISOString())
+        .lt("start_time", new Date(startOfMonth.getFullYear(), startOfMonth.getMonth() + 1, 1).toISOString());
+
+    const totalTasks = tasksThisMonth?.length ?? 0;
+    const completeTasks = tasksThisMonth?.filter(task => task.status.toLowerCase().includes("completed")).length ?? 0;
+
+    const perUserTaskStats = Object.values((tasksThisMonth ?? []).reduce((acc: Record<string, any>, t: any) => {
+        const userId = t.users?.user_id ?? "unknown";
+        const username = t.users?.username ?? "Unknown";
+        if (!acc[userId]) {
+            acc[userId] = { userId, username, totalTasks: 0, completedTasks: 0 };
+        }
+        acc[userId].totalTasks += 1;
+        if (t.status.toLowerCase().includes("completed")) acc[userId].completedTasks += 1;
+        return acc;
+    }, {})).map((v: any) => v);
+
+    const perUserPercent = (perUserTaskStats ?? []).map((u: any) => {
+        const total = u.totalTasks || 0;
+        const completed = u.completedTasks || 0;
+        const percent = Math.round((completed / Math.max(1, total)) * 100);
+        return { ...u, completion: percent };
+    });
+
+    const perUserTaskStatsSorted = perUserPercent.sort((a: any, b: any) =>
+        (b.completion || 0) - (a.completion || 0) || (b.totalTasks || 0) - (a.totalTasks || 0)
+    );
+
+    const { data: activityLogs, error: activityError } = await supabase
+        .from("activity_logs")
+        .select(`
+            log_id,
+            action,
+            created_at,
+            users (
+                user_id,
+                username
+            )
+        `)
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+    if (userError || taskError || revenueError || pendingPaymentsError || expenseError || activityError || tasksThisMonthError) {
         return errorResponse(
             MESSAGES.COMMON.ERROR,
-            userError?.message || taskError?.message || revenueError?.message || pendingPaymentsError?.message || expenseError?.message || "Failed to fetch dashboard stats",
+            userError?.message || taskError?.message || revenueError?.message || pendingPaymentsError?.message || expenseError?.message || tasksThisMonthError?.message || activityError?.message || "Failed to fetch dashboard stats",
             500
         );
     }
@@ -141,19 +193,7 @@ export const GET = async (_req: NextRequest): Promise<Response> => {
         .gte("end_time", new Date(startOfMonth.getFullYear(), startOfMonth.getMonth() - 1, 1).toISOString())
         .lt("end_time", startOfMonth.toISOString());
 
-    const { data: activityLogs, error: activityError } = await supabase
-        .from("activity_logs")
-        .select(`
-            log_id,
-            action,
-            created_at,
-            users (
-                user_id,
-                username
-            )
-        `)
-        .order("created_at", { ascending: false })
-        .limit(5);
+
 
     let taskCompletion = 0;
     if (completeTaskLastMonth && completeTaskLastMonth > 0) {
@@ -197,6 +237,9 @@ export const GET = async (_req: NextRequest): Promise<Response> => {
         taskCompletion,
         revenueGrowth,
         paymentCollection,
+        totalTasks,
+        completeTasks,
+        perUserTaskStats: perUserTaskStatsSorted,
         recentActivity: activityLogs?.map(log => ({
             id: log.log_id,
             user: log.users?.username ?? "Unknown",

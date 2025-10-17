@@ -13,6 +13,13 @@ export interface DashboardStatsResponse {
     taskCompletion: number;
     revenueGrowth: number;
     paymentCollection: number;
+    totalTasks: number;
+    completeTasks: number;
+    perUserTaskStats: {
+      username: string;
+      totalTasks: number;
+      completedTasks: number;
+    }[];
     recentActivity: {
       id: number;
       user: string;
