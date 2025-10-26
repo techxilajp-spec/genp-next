@@ -1,16 +1,11 @@
 import axios from "axios";
+import { UseQueryResult } from "@tanstack/react-query";
 import {
-  useMutation,
-  UseMutationResult,
-  UseQueryResult,
-} from "@tanstack/react-query";
-import {
+  UserProductivity,
   UsersNamesResponse,
-  Users,
-  UserResponse,
-  UserDepartmentResponse,
-  UserCreate,
-  UserUpdate,
+  UsertaskData,
+  UserTaskDetail,
+  UserTasksDetailResponse,
 } from "@/types/api/admin/users";
 import { useQuery } from "@tanstack/react-query";
 /**
@@ -25,76 +20,37 @@ export const useUsersNames = (): UseQueryResult<UsersNamesResponse> => {
     select: (data) => data.data,
   });
 };
-
 /**
  * @description
- * User Department name Hool
- * @return {UseQueryResult<UserDepartmentResponse>}
+ *  User Productivity Hook
+ * @returns {UseQueryResult<DepartmentEmployees>}
  */
-export const useUserDepartmentNames =
-  (): UseQueryResult<UserDepartmentResponse> => {
-    return useQuery({
-      queryKey: ["userDepartmentNames"],
-      queryFn: () => axios.get("/api/admin/users/departments"),
-      select: (data) => data.data,
-    });
-  };
-
-/**
- * @description
- * User Hook
- * @returns {UseQueryResult<Users>}
- */
-export const useUser = (
-  page: number,
-  pageSize: number,
-  keyword: string
-): UseQueryResult<UserResponse> => {
+export const useUserProductivity = (): UseQueryResult<UserProductivity[]> => {
   return useQuery({
-    queryKey: ["user", page, pageSize, keyword],
-    queryFn: () =>
-      axios.get("/api/admin/users", {
-        params: { page, pageSize, keyword },
-      }),
+    queryKey: ["department-employees"],
+    queryFn: () => axios.get("/api/admin/users/names"),
+    select: (data) => data.data.data, // assuming { success, message, data }
+  });
+};
+
+export const useUserTasksDetail = (
+  userId: string
+): UseQueryResult<UserTaskDetail[]> => {
+  return useQuery({
+    queryKey: ["user-tasks-detail", userId],
+    queryFn: () => axios.get(`/api/admin/users/names/${userId}`),
     select: (data) => data.data,
+    enabled: !!userId,
   });
 };
 
-/**
- * @description
- * Create user Hook
- * @return {UseMutationResult<UserCreate>}
- */
-export const useCreateUser = (): UseMutationResult<
-  UserCreate,
-  Error,
-  UserCreate
-> => {
-  return useMutation<UserCreate, Error, UserCreate>({
-    mutationFn: async (user) => {
-      const res = await axios.post<UserCreate>(`/api/admin/users/create`, user);
-      return res.data;
-    },
-  });
-};
-
-/**
- * @description
- * Update User Hook
- * @return {UseMutationResult<UserUpdate>}
- */
-export const useUpdateUser = (): UseMutationResult<
-  UserUpdate,
-  Error,
-  UserUpdate
-> => {
-  return useMutation<UserUpdate, Error, UserUpdate>({
-    mutationFn: async (user) => {
-      const res = await axios.patch<UserUpdate>(
-        `/api/admin/users/${user.user_id}/update`,
-        user
-      );
-      return res.data;
-    },
+export const useUserTasksData = (
+  userId: string
+): UseQueryResult<UsertaskData> => {
+  return useQuery({
+    queryKey: ["user-tasks-data", userId],
+    queryFn: () => axios.get(`/api/admin/users/names/${userId}`),
+    select: (data) => data.data,
+    enabled: !!userId,
   });
 };

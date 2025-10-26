@@ -1,12 +1,6 @@
 import { UserTaskDetails } from "@/components/user-task-details";
 import { MobileHeader } from "@/components/mobile-header";
 
-interface UserTaskPageProps {
-  params: {
-    userId: string;
-  };
-}
-
 // Only if you made this async!
 export default async function UserTaskPage({
   params,

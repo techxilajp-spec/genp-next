@@ -24,7 +24,7 @@ import { LanguageSwitcher } from "@/components/language-switcher";
 import { useDashboardStats } from "@/hooks/admin/useDashboardStats";
 
 export default function Dashboard() {
-  const { t, language } = useI18n();
+  const { t } = useI18n();
 
   const { stats, isLoading, isError } = useDashboardStats();
 

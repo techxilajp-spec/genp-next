@@ -68,34 +68,37 @@ export function UserTaskDetails({ userId }: UserTaskDetailsProps) {
     isLoading: userTasksDetailLoading,
   } = useUserTasksDetail(userId ?? "");
 
-const tasks: Task[] = useMemo(() => {
-  const arr = Array.isArray(userTasksDetailData)
-    ? userTasksDetailData
-    : (userTasksDetailData as any)?.data ?? [];
+  const tasks: Task[] = useMemo(() => {
+    const arr = Array.isArray(userTasksDetailData)
+      ? userTasksDetailData
+      : (userTasksDetailData as any)?.data ?? [];
 
-  return arr.map((t: any): Task => ({
-    id: String(t.id),
-    title: t.title ?? null,
-    description: t.description ?? null,
-    category: t.category ?? null,
-    priority: t.priority ?? null,
-    difficulty: t.difficulty ?? null,
-    duration_minutes: t.duration_minutes ?? null,
-    completed_at:
-      typeof t.completed_at === "string"
-        ? t.completed_at
-        : new Date(t.completed_at).toISOString(),
-  }));
-}, [userTasksDetailData]
-);  const { data: userTotalsData } = useUserTasksData(userId ?? "");
+    return arr.map(
+      (t: any): Task => ({
+        id: String(t.id),
+        title: t.title ?? null,
+        description: t.description ?? null,
+        category: t.category ?? null,
+        priority: t.priority ?? null,
+        difficulty: t.difficulty ?? null,
+        duration_minutes: t.duration_minutes ?? null,
+        completed_at:
+          typeof t.completed_at === "string"
+            ? t.completed_at
+            : new Date(t.completed_at).toISOString(),
+      })
+    );
+  }, [userTasksDetailData]);
+
+  const { data: userTotalsData } = useUserTasksData(userId ?? "");
 
   const { data: allUsers } = useUserProductivity();
   const [activeTab, setActiveTab] = useState<"all" | "today" | "week">("all");
   const [filters, setFilters] = useState<FilterState>({
-    search: '',
+    search: "",
     dateRange: { from: undefined, to: undefined },
-    sortBy: 'completed_at',
-    sortOrder: 'desc' as const,
+    sortBy: "completed_at",
+    sortOrder: "desc" as const,
     status: [],
     priority: [],
     category: [],
@@ -305,7 +308,7 @@ const tasks: Task[] = useMemo(() => {
   );
 
   const completedTasksForUser = Number(
-    userTotals?.completed_tasks ?? tasks.length ?? 0 
+    userTotals?.completed_tasks ?? tasks.length ?? 0
   );
 
   // Loading / Error states
@@ -331,26 +334,28 @@ const tasks: Task[] = useMemo(() => {
           <div className="flex items-center space-x-4">
             <Avatar className="h-16 w-16">
               <AvatarImage src={headerUser.user_photo || "/placeholder.svg"} />
-              <AvatarFallback className="text-lg">{headerUser.username.slice(0, 2).toUpperCase()}</AvatarFallback>
+              <AvatarFallback className="text-lg">
+                {headerUser.username.slice(0, 2).toUpperCase()}
+              </AvatarFallback>
             </Avatar>
             <div className="flex-1">
               <CardTitle className="text-xl lg:text-2xl text-slate-900">
                 {headerUser.username}
               </CardTitle>
-              <CardDescription className='text-slate-600'>
+              <CardDescription className="text-slate-600">
                 {headerUser.email}
               </CardDescription>
-              <div className='flex items-center space-x-4 mt-2'>
-                <div className='flex items-center space-x-1'>
-                  <Award className='h-4 w-4 text-purple-500' />
-                  <span className='text-sm font-medium text-slate-700'>
+              <div className="flex items-center space-x-4 mt-2">
+                <div className="flex items-center space-x-1">
+                  <Award className="h-4 w-4 text-purple-500" />
+                  <span className="text-sm font-medium text-slate-700">
                     Productivity Score: {userTotals?.productivityScore ?? "-"}%
                   </span>
                 </div>
-                <div className='flex items-center space-x-1'>
-                  <TrendingUp className='h-4 w-4 text-emerald-500' />
-                  <span className='text-sm font-medium text-slate-700'>
-                    Completion Rate: {userTotals?.completionRate ?? "-" }%
+                <div className="flex items-center space-x-1">
+                  <TrendingUp className="h-4 w-4 text-emerald-500" />
+                  <span className="text-sm font-medium text-slate-700">
+                    Completion Rate: {userTotals?.completionRate ?? "-"}%
                   </span>
                 </div>
               </div>
@@ -363,33 +368,45 @@ const tasks: Task[] = useMemo(() => {
       <div className="grid gap-3 lg:gap-4 grid-cols-1 sm:grid-cols-3">
         <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-blue-50 hover:shadow-xl transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-700">Today&apos;s Tasks</CardTitle>
+            <CardTitle className="text-sm font-medium text-slate-700">
+              Today&apos;s Tasks
+            </CardTitle>
             <CheckCircle className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-slate-900">{todayTasks.length}</div>
+            <div className="text-2xl font-bold text-slate-900">
+              {todayTasks.length}
+            </div>
             <p className="text-xs text-slate-600">Completed today</p>
           </CardContent>
         </Card>
 
         <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-emerald-50 hover:shadow-xl transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-700">This Week&apos;s Tasks</CardTitle>
+            <CardTitle className="text-sm font-medium text-slate-700">
+              This Week&apos;s Tasks
+            </CardTitle>
             <Calendar className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-slate-900">{weekTasks.length}</div>
+            <div className="text-2xl font-bold text-slate-900">
+              {weekTasks.length}
+            </div>
             <p className="text-xs text-slate-600">Weekly total</p>
           </CardContent>
         </Card>
 
         <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-purple-50 hover:shadow-xl transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-700">All Tasks</CardTitle>
+            <CardTitle className="text-sm font-medium text-slate-700">
+              All Tasks
+            </CardTitle>
             <TrendingUp className="h-4 w-4 text-purple-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-slate-900">{filteredAndSortedTasks.length}</div>
+            <div className="text-2xl font-bold text-slate-900">
+              {filteredAndSortedTasks.length}
+            </div>
             <p className="text-xs text-slate-600">Total filtered</p>
           </CardContent>
         </Card>
@@ -407,7 +424,7 @@ const tasks: Task[] = useMemo(() => {
           status: false,
           priority: true,
           category: true,
-          user: false
+          user: false,
         }}
         placeholder="Search tasks by title, description, or category..."
       />
@@ -416,10 +433,12 @@ const tasks: Task[] = useMemo(() => {
       <Tabs
         value={activeTab}
         onValueChange={(v) => setActiveTab(v as typeof activeTab)}
-        className='space-y-4'
+        className="space-y-4"
       >
         <TabsList>
-          <TabsTrigger value="all">All Tasks ({filteredAndSortedTasks.length})</TabsTrigger>
+          <TabsTrigger value="all">
+            All Tasks ({filteredAndSortedTasks.length})
+          </TabsTrigger>
           <TabsTrigger value="today">Today ({todayTasks.length})</TabsTrigger>
           <TabsTrigger value="week">This Week ({weekTasks.length})</TabsTrigger>
         </TabsList>
@@ -427,63 +446,65 @@ const tasks: Task[] = useMemo(() => {
         <TabsContent value="all">
           <Card className="border-0 shadow-lg bg-white/70 backdrop-blur-sm hover:shadow-xl transition-all duration-300">
             <CardHeader className="border-b border-slate-100">
-              <CardTitle className="text-base lg:text-lg text-slate-900">All Completed Tasks</CardTitle>
+              <CardTitle className="text-base lg:text-lg text-slate-900">
+                All Completed Tasks
+              </CardTitle>
               <CardDescription className="text-sm text-slate-600">
                 Showing {filteredAndSortedTasks.length} of {tasks.length} tasks
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className='overflow-x-auto'>
+              <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className='min-w-[250px]'>Task</TableHead>
-                      <TableHead className='min-w-[100px]'>Category</TableHead>
-                      <TableHead className='min-w-[100px]'>Priority</TableHead>
-                      <TableHead className='min-w-[80px]'>Difficulty</TableHead>
-                      <TableHead className='min-w-[100px]'>Duration</TableHead>
-                      <TableHead className='min-w-[150px]'>Completed</TableHead>
+                      <TableHead className="min-w-[250px]">Task</TableHead>
+                      <TableHead className="min-w-[100px]">Category</TableHead>
+                      <TableHead className="min-w-[100px]">Priority</TableHead>
+                      <TableHead className="min-w-[80px]">Difficulty</TableHead>
+                      <TableHead className="min-w-[100px]">Duration</TableHead>
+                      <TableHead className="min-w-[150px]">Completed</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredAndSortedTasks.map((task) => (
                       <TableRow key={task.id}>
-                        <TableCell className='min-w-[250px]'>
+                        <TableCell className="min-w-[250px]">
                           <div>
-                            <div className='font-medium text-sm lg:text-base'>
+                            <div className="font-medium text-sm lg:text-base">
                               {text(task.title)}
                             </div>
-                            <div className='text-xs lg:text-sm text-muted-foreground line-clamp-2'>
+                            <div className="text-xs lg:text-sm text-muted-foreground line-clamp-2">
                               {text(task.description)}
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell className='min-w-[100px]'>
-                          <Badge variant='outline' className='text-xs'>
-                            <Tag className='h-3 w-3 mr-1' />
+                        <TableCell className="min-w-[100px]">
+                          <Badge variant="outline" className="text-xs">
+                            <Tag className="h-3 w-3 mr-1" />
                             {text(task.category)}
                           </Badge>
                         </TableCell>
-                        <TableCell className='min-w-[100px]'>
-                          {(text(task.priority))}
+                        <TableCell className="min-w-[100px]">
+                          {text(task.priority)}
                         </TableCell>
-                        <TableCell className='min-w-[80px]'>
-                          {(text(task.difficulty))}
+                        <TableCell className="min-w-[80px]">
+                          {text(task.difficulty)}
                         </TableCell>
-                        <TableCell className='min-w-[100px]'>
-                          <div className='flex items-center space-x-1'>
-                            <Clock className='h-3 w-3 text-slate-500' />
-                            <span className='text-xs lg:text-sm'>
+                        <TableCell className="min-w-[100px]">
+                          <div className="flex items-center space-x-1">
+                            <Clock className="h-3 w-3 text-slate-500" />
+                            <span className="text-xs lg:text-sm">
                               {task.duration_minutes ?? 0}m
                             </span>
                           </div>
                         </TableCell>
-                        <TableCell className='min-w-[150px]'>
-                          <div className='text-xs lg:text-sm'>
+                        <TableCell className="min-w-[150px]">
+                          <div className="text-xs lg:text-sm">
                             <div>
                               {new Date(task.completed_at).toLocaleDateString()}
                             </div>
-                            <div className='text-muted-foreground'>
+                            <div className="text-muted-foreground">
                               {new Date(task.completed_at).toLocaleTimeString(
                                 [],
                                 {
@@ -503,60 +524,60 @@ const tasks: Task[] = useMemo(() => {
           </Card>
         </TabsContent>
 
-        <TabsContent value='today'>
-          <Card className='border-0 shadow-lg bg-white/70 backdrop-blur-sm hover:shadow-xl transition-all duration-300'>
-            <CardHeader className='border-b border-slate-100'>
-              <CardTitle className='text-base lg:text-lg text-slate-900'>
+        <TabsContent value="today">
+          <Card className="border-0 shadow-lg bg-white/70 backdrop-blur-sm hover:shadow-xl transition-all duration-300">
+            <CardHeader className="border-b border-slate-100">
+              <CardTitle className="text-base lg:text-lg text-slate-900">
                 Today&apos;s Completed Tasks
               </CardTitle>
-              <CardDescription className='text-sm text-slate-600'>
+              <CardDescription className="text-sm text-slate-600">
                 Tasks completed today ({todayTasks.length} tasks)
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className='overflow-x-auto'>
+              <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className='min-w-[250px]'>Task</TableHead>
-                      <TableHead className='min-w-[100px]'>Category</TableHead>
-                      <TableHead className='min-w-[100px]'>Priority</TableHead>
-                      <TableHead className='min-w-[100px]'>Duration</TableHead>
-                      <TableHead className='min-w-[100px]'>Time</TableHead>
+                      <TableHead className="min-w-[250px]">Task</TableHead>
+                      <TableHead className="min-w-[100px]">Category</TableHead>
+                      <TableHead className="min-w-[100px]">Priority</TableHead>
+                      <TableHead className="min-w-[100px]">Duration</TableHead>
+                      <TableHead className="min-w-[100px]">Time</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {todayTasks.map((task) => (
                       <TableRow key={task.id}>
-                        <TableCell className='min-w-[250px]'>
+                        <TableCell className="min-w-[250px]">
                           <div>
-                            <div className='font-medium text-sm lg:text-base'>
+                            <div className="font-medium text-sm lg:text-base">
                               {text(task.title)}
                             </div>
-                            <div className='text-xs lg:text-sm text-muted-foreground line-clamp-2'>
+                            <div className="text-xs lg:text-sm text-muted-foreground line-clamp-2">
                               {text(task.description)}
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell className='min-w-[100px]'>
-                          <Badge variant='outline' className='text-xs'>
-                            <Tag className='h-3 w-3 mr-1' />
+                        <TableCell className="min-w-[100px]">
+                          <Badge variant="outline" className="text-xs">
+                            <Tag className="h-3 w-3 mr-1" />
                             {text(task.category)}
                           </Badge>
                         </TableCell>
-                        <TableCell className='min-w-[100px]'>
-                          {(text(task.priority))}
+                        <TableCell className="min-w-[100px]">
+                          {text(task.priority)}
                         </TableCell>
-                        <TableCell className='min-w-[100px]'>
-                          <div className='flex items-center space-x-1'>
-                            <Clock className='h-3 w-3 text-slate-500' />
-                            <span className='text-xs lg:text-sm'>
+                        <TableCell className="min-w-[100px]">
+                          <div className="flex items-center space-x-1">
+                            <Clock className="h-3 w-3 text-slate-500" />
+                            <span className="text-xs lg:text-sm">
                               {task.duration_minutes ?? 0}m
                             </span>
                           </div>
                         </TableCell>
-                        <TableCell className='min-w-[100px]'>
-                          <div className='text-xs lg:text-sm'>
+                        <TableCell className="min-w-[100px]">
+                          <div className="text-xs lg:text-sm">
                             {new Date(task.completed_at).toLocaleTimeString(
                               [],
                               {
@@ -575,64 +596,64 @@ const tasks: Task[] = useMemo(() => {
           </Card>
         </TabsContent>
 
-        <TabsContent value='week'>
-          <Card className='border-0 shadow-lg bg-white/70 backdrop-blur-sm hover:shadow-xl transition-all duration-300'>
-            <CardHeader className='border-b border-slate-100'>
-              <CardTitle className='text-base lg:text-lg text-slate-900'>
+        <TabsContent value="week">
+          <Card className="border-0 shadow-lg bg-white/70 backdrop-blur-sm hover:shadow-xl transition-all duration-300">
+            <CardHeader className="border-b border-slate-100">
+              <CardTitle className="text-base lg:text-lg text-slate-900">
                 This Week&apos;s Tasks
               </CardTitle>
-              <CardDescription className='text-sm text-slate-600'>
+              <CardDescription className="text-sm text-slate-600">
                 Tasks completed in the last 7 days ({weekTasks.length} tasks)
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className='overflow-x-auto'>
+              <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className='min-w-[250px]'>Task</TableHead>
-                      <TableHead className='min-w-[100px]'>Category</TableHead>
-                      <TableHead className='min-w-[100px]'>Priority</TableHead>
-                      <TableHead className='min-w-[100px]'>Duration</TableHead>
-                      <TableHead className='min-w-[150px]'>Completed</TableHead>
+                      <TableHead className="min-w-[250px]">Task</TableHead>
+                      <TableHead className="min-w-[100px]">Category</TableHead>
+                      <TableHead className="min-w-[100px]">Priority</TableHead>
+                      <TableHead className="min-w-[100px]">Duration</TableHead>
+                      <TableHead className="min-w-[150px]">Completed</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {weekTasks.map((task) => (
                       <TableRow key={task.id}>
-                        <TableCell className='min-w-[250px]'>
+                        <TableCell className="min-w-[250px]">
                           <div>
-                            <div className='font-medium text-sm lg:text-base'>
+                            <div className="font-medium text-sm lg:text-base">
                               {text(task.title)}
                             </div>
-                            <div className='text-xs lg:text-sm text-muted-foreground line-clamp-2'>
+                            <div className="text-xs lg:text-sm text-muted-foreground line-clamp-2">
                               {text(task.description)}
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell className='min-w-[100px]'>
-                          <Badge variant='outline' className='text-xs'>
-                            <Tag className='h-3 w-3 mr-1' />
+                        <TableCell className="min-w-[100px]">
+                          <Badge variant="outline" className="text-xs">
+                            <Tag className="h-3 w-3 mr-1" />
                             {text(task.category)}
                           </Badge>
                         </TableCell>
-                        <TableCell className='min-w-[100px]'>
-                          {(text(task.priority))}
+                        <TableCell className="min-w-[100px]">
+                          {text(task.priority)}
                         </TableCell>
-                        <TableCell className='min-w-[100px]'>
-                          <div className='flex items-center space-x-1'>
-                            <Clock className='h-3 w-3 text-slate-500' />
-                            <span className='text-xs lg:text-sm'>
+                        <TableCell className="min-w-[100px]">
+                          <div className="flex items-center space-x-1">
+                            <Clock className="h-3 w-3 text-slate-500" />
+                            <span className="text-xs lg:text-sm">
                               {task.duration_minutes ?? 0}m
                             </span>
                           </div>
                         </TableCell>
-                        <TableCell className='min-w-[150px]'>
-                          <div className='text-xs lg:text-sm'>
+                        <TableCell className="min-w-[150px]">
+                          <div className="text-xs lg:text-sm">
                             <div>
                               {new Date(task.completed_at).toLocaleDateString()}
                             </div>
-                            <div className='text-muted-foreground'>
+                            <div className="text-muted-foreground">
                               {new Date(task.completed_at).toLocaleTimeString(
                                 [],
                                 {
@@ -655,6 +676,3 @@ const tasks: Task[] = useMemo(() => {
     </div>
   );
 }
-
-
-
