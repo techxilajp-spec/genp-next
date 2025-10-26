@@ -3,7 +3,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { errorResponse, successResponse } from "@/lib/api/response";
 import { MESSAGES } from "@/types/messages";
-import { UsersNamesResponse } from "@/types/api/admin/users";
+import { UserProductivity, UsersNamesResponse } from "@/types/api/admin/users";
 
 /**
  * @swagger
@@ -45,15 +45,28 @@ export const GET = async () => {
     .select("user_id, username")
     .order("created_at", { ascending: false });
 
-  if (error) {
+  const { data: userProductivity, error: userProductivityError } =
+  await supabase
+    .from("user_productivity_v")
+    .select(`
+      user_id, username, email, phone_number, registration_date, last_login,
+      user_type, is_active, department,
+      tasks_completed_today, tasks_completed_week, tasks_completed_month,
+      completion_percentage, productivity_score
+    `)
+    .order("registration_date", { ascending: false });
+
+  if (error || userProductivityError) {
     return errorResponse(
       MESSAGES.USERS.FETCH_FAILED,
-      error.message || MESSAGES.COMMON.UNEXPECTED_ERROR,
+      error?.message ||
+        userProductivityError?.message ||
+        MESSAGES.COMMON.UNEXPECTED_ERROR,
       500
     );
   }
   return successResponse(
-    data as unknown as UsersNamesResponse,
+    userProductivity as unknown as UserProductivity,
     MESSAGES.USERS.FETCH_SUCCESS
   );
 };

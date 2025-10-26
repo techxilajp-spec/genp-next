@@ -57,37 +57,37 @@ export default function Dashboard() {
   // ];
 
   return (
-    <div className="p-4 lg:p-8 space-y-8">
+    <div className='p-4 lg:p-8 space-y-8'>
       {/* Mobile Header */}
-      <div className="lg:hidden flex items-center justify-between mb-6 ml-12">
+      <div className='lg:hidden flex items-center justify-between mb-6 ml-12'>
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">
+          <h1 className='text-2xl font-bold text-slate-800'>
             {t.dashboard.title}
           </h1>
-          <p className="text-slate-600">{t.dashboard.subtitle}</p>
+          <p className='text-slate-600'>{t.dashboard.subtitle}</p>
         </div>
         <LanguageSwitcher />
       </div>
 
       {/* Desktop Header */}
-      <div className="hidden lg:flex items-center justify-between">
+      <div className='hidden lg:flex items-center justify-between'>
         <div>
-          <h1 className="text-3xl font-bold text-slate-800">
+          <h1 className='text-3xl font-bold text-slate-800'>
             {t.dashboard.title}
           </h1>
-          <p className="text-slate-600 mt-2">{t.dashboard.subtitle}</p>
+          <p className='text-slate-600 mt-2'>{t.dashboard.subtitle}</p>
         </div>
         <LanguageSwitcher />
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium opacity-90">
+      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
+        <Card className='bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300'>
+          <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+            <CardTitle className='text-sm font-medium opacity-90'>
               {t.dashboard.totalUsers}
             </CardTitle>
-            <Users className="h-4 w-4 opacity-90" />
+            <Users className='h-4 w-4 opacity-90' />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -110,7 +110,7 @@ export default function Dashboard() {
             <CardTitle className="text-sm font-medium opacity-90">
               {t.dashboard.activeTasks}
             </CardTitle>
-            <Calendar className="h-4 w-4 opacity-90" />
+            <Calendar className='h-4 w-4 opacity-90' />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -134,7 +134,7 @@ export default function Dashboard() {
             <CardTitle className="text-sm font-medium opacity-90">
               {t.dashboard.monthlyRevenue}
             </CardTitle>
-            <DollarSign className="h-4 w-4 opacity-90" />
+            <DollarSign className='h-4 w-4 opacity-90' />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -158,7 +158,7 @@ export default function Dashboard() {
             <CardTitle className="text-sm font-medium opacity-90">
               {t.dashboard.pendingPayments}
             </CardTitle>
-            <CreditCard className="h-4 w-4 opacity-90" />
+            <CreditCard className='h-4 w-4 opacity-90' />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -178,39 +178,39 @@ export default function Dashboard() {
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
         {/* Recent Activity */}
-        <Card className="lg:col-span-2 shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+        <Card className='lg:col-span-2 shadow-lg border-0 bg-white/80 backdrop-blur-sm'>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-slate-800">
-              <Activity className="h-5 w-5" />
+            <CardTitle className='flex items-center gap-2 text-slate-800'>
+              <Activity className='h-5 w-5' />
               {t.dashboard.recentActivity}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className='space-y-4'>
               {recentActivity.map((activity) => (
                 <div
                   key={activity.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
+                  className='flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors'
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                      <span className="text-white text-xs font-semibold">
+                  <div className='flex items-center gap-3'>
+                    <div className='w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center'>
+                      <span className='text-white text-xs font-semibold'>
                         {activity.user.charAt(0)}
                       </span>
                     </div>
                     <div>
-                      <p className="font-medium text-slate-800">
+                      <p className='font-medium text-slate-800'>
                         {activity.user}
                       </p>
-                      <p className="text-sm text-slate-600">
+                      <p className='text-sm text-slate-600'>
                         {activity.action}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center text-xs text-slate-500">
-                    <Clock className="h-3 w-3 mr-1" />
+                  <div className='flex items-center text-xs text-slate-500'>
+                    <Clock className='h-3 w-3 mr-1' />
                     {activity.time}
                   </div>
                 </div>
@@ -220,10 +220,10 @@ export default function Dashboard() {
         </Card>
 
         {/* Top Performers */}
-        <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+        <Card className='shadow-lg border-0 bg-white/80 backdrop-blur-sm'>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-slate-800">
-              <TrendingUp className="h-5 w-5" />
+            <CardTitle className='flex items-center gap-2 text-slate-800'>
+              <TrendingUp className='h-5 w-5' />
               {t.dashboard.topPerformers}
             </CardTitle>
           </CardHeader>
@@ -261,10 +261,10 @@ export default function Dashboard() {
       </div>
 
       {/* Financial Summary */}
-      <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+      <Card className='shadow-lg border-0 bg-white/80 backdrop-blur-sm'>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-slate-800">
-            <DollarSign className="h-5 w-5" />
+          <CardTitle className='flex items-center gap-2 text-slate-800'>
+            <DollarSign className='h-5 w-5' />
             {t.dashboard.financialSummary}
           </CardTitle>
           <CardDescription>Monthly financial overview and trends</CardDescription>
