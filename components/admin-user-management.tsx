@@ -113,11 +113,9 @@ export function AdminUserManagement() {
   const [users, setUsers] = useState<Users[]>([]);
   const userTable = useTableState(10);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<Users | null>(null);
   const [deactivationReason, setDeactivationReason] = useState("");
   const [customReason, setCustomReason] = useState("");
-  const [departmentList, setDepartmentList] = useState<UserDepartmentResponse[]>([]);
   const addModal = useModal();
   const editModal = useModal();
   const { t } = useI18n();
@@ -143,12 +141,33 @@ export function AdminUserManagement() {
   useEffect(() => { 
     if(usersData?.data?.data && Array.isArray(usersData?.data?.data)) { 
       setUsers(usersData.data.data)
-      console.log("Update users : ", usersData.data.data)
     }
     // if(departments && Array.isArray(departments)) { 
     //   setDepartmentList(departments)
     // }
   }, [usersData])
+
+  useEffect(() => {
+  if (editModal.open && selectedUser) {
+    // Find department_id from department name
+    const dept = departments?.data?.find(
+      (d) => d.name === selectedUser.department
+    );
+    editForm.reset({
+      ...selectedUser,
+      user_type: selectedUser.user_type as "admin" | "member",
+      department_id: dept ? dept.department_id.toString() : "",
+      role_permissions: selectedUser.permission_name,
+      email_verified: selectedUser.email_verified,
+      phone_verified: selectedUser.phone_verified,
+      two_factor_enabled: selectedUser.two_factor_enabled,
+    });
+  }
+  // Optionally, reset form when dialog closes
+  if (!editModal.open) {
+    editForm.reset();
+  }
+}, [editModal.open, selectedUser, departments]);
 
   //Add user form 
   const addForm = useForm<UserForm>({ 
@@ -157,8 +176,12 @@ export function AdminUserManagement() {
       username : "",
       email : "",
       phone_number : "",
-      user_type : undefined,
-      department_id : ""
+      user_type : "member",
+      department_id : "",
+      email_verified: false,
+      phone_verified: false,
+      two_factor_enabled: false,
+      role_permissions: "",
     }
   })
 
@@ -170,11 +193,11 @@ export function AdminUserManagement() {
       email : "",
       phone_number : "",
       department_id : "",
-      user_type : undefined,
-      email_verified : undefined,
-      phone_verified : undefined, 
-      two_factor_enabled : undefined,
-      role_permissions : undefined,
+      user_type : "member",
+      email_verified : false,
+      phone_verified : false, 
+      two_factor_enabled : false,
+      role_permissions : "",
     }
   })
 
@@ -186,7 +209,11 @@ export function AdminUserManagement() {
         email : data.email,
         phone_number : data.phone_number,
         user_type : data.user_type,
-        department : data.department_id
+        department : data.department_id,
+        email_verified: data.email_verified || false,
+        phone_verified: data.phone_verified || false,
+        two_factor_enabled: data.two_factor_enabled || false,
+        role_permissions: data.role_permissions || "",
       }, 
       { 
         onSuccess : () => { 
@@ -194,6 +221,7 @@ export function AdminUserManagement() {
           refetchUsers();
           addForm.reset();
           addModal.setOpen(false);
+          setIsAddDialogOpen(false);
         }, 
         onError : (error) => { 
           toast.error( 
@@ -208,35 +236,41 @@ export function AdminUserManagement() {
 
   // Handle edit user form submission 
   const onSubmitEdit = async( data : UserForm) => { 
-    await updateUser(
-      {
-        username : data.username,
-        email : data.email,
-        phone_number : data.phone_number,
-        user_type : data.user_type,
-        department_id : data.department_id,
-        email_verified : data.email_verified || false,
-        phone_verified : data.phone_verified || false,
-        two_factor_enabled : data.two_factor_enabled || false,
-        role_permissions : data.role_permissions,
-        user_id : selectedUser?.user_id || "",
-      },
-      {
-        onSuccess: () => { 
-          toast.success("User updated successfully");
-          refetchUsers();
-          editForm.reset();
-          editModal.setOpen(false);
-        }, 
-        onError : (error) => { 
-          toast.error(
-            error instanceof Error 
-            ? error.message
-            : "Failed to update user"
-          )
+    try { 
+      await updateUser(
+        {
+          username : data.username,
+          email : data.email,
+          phone_number : data.phone_number,
+          user_type : data.user_type,
+          department_id : data.department_id,
+          email_verified : data.email_verified || false,
+          phone_verified : data.phone_verified || false,
+          two_factor_enabled : data.two_factor_enabled || false,
+          role_permissions : data.role_permissions,
+          user_id : selectedUser?.user_id || "",
+        },
+        {
+          onSuccess: () => { 
+            toast.success("User updated successfully");
+            refetchUsers();
+            editForm.reset();
+            editModal.setOpen(false);
+          }, 
+          onError : (error) => { 
+            toast.error(
+              error instanceof Error 
+              ? error.message
+              : "Failed to update user"
+            )
+          }
         }
-      }
-    )
+      )
+    } catch(err) { 
+      toast.error(
+        err instanceof Error ? err.message : "Failed to update user"
+      )
+    }
   }
 
   const [filters, setFilters] = useState<FilterState>({
@@ -673,6 +707,11 @@ export function AdminUserManagement() {
                   </div>
                 <DialogFooter>
                   <Button type="submit">Create User</Button>
+                  <Button 
+                    type="submit" 
+                    onClick={() => console.log("Create button clicked")} > 
+                    Debug click
+                    </Button>
                 </DialogFooter>
               </form>
             </Form>
@@ -933,7 +972,7 @@ export function AdminUserManagement() {
                                 ...user,
                                 user_type: user.user_type as "admin" | "member",
                                 department_id : dept ? dept.department_id.toString() : "",
-                                role_permissions : user.role_permissions,
+                                role_permissions : user.permission_name,
                               });
                               editModal.setOpen(true)
                             }}
@@ -1166,11 +1205,10 @@ export function AdminUserManagement() {
                         </Label>
                         <Input {...editForm.register("username")}
                           id="edit-username"
-                          defaultValue={selectedUser.username}
                           className="col-span-3"
                         />
                         {editForm.formState.errors.username && (
-                        <p className="text-red-500 text-sm">
+                        <p className="text-red-500 text-sm col-span-3 col-start-2">
                           {editForm.formState.errors.username.message}
                         </p>
                         )}
@@ -1182,11 +1220,10 @@ export function AdminUserManagement() {
                         <Input {...editForm.register("email")}
                           id="edit-email"
                           type="email"
-                          defaultValue={selectedUser.email}
                           className="col-span-3"
                         />
                         {editForm.formState.errors.email && (
-                        <p className="text-red-500 text-sm">
+                        <p className="text-red-500 text-sm col-span-3 col-start-2">
                           {editForm.formState.errors.email.message}
                         </p>
                       )}
@@ -1197,11 +1234,10 @@ export function AdminUserManagement() {
                         </Label>
                         <Input {...editForm.register("phone_number")}
                           id="edit-phone"
-                          defaultValue={selectedUser.phone_number}
                           className="col-span-3"
                         />
                         {editForm.formState.errors.phone_number && (
-                        <p className="text-red-500 text-sm">
+                        <p className="text-red-500 text-sm col-span-3 col-start-2">
                           {editForm.formState.errors.phone_number.message}
                         </p>
                       )}
@@ -1235,7 +1271,7 @@ export function AdminUserManagement() {
                               )}
                         />
                         {editForm.formState.errors.department_id && (
-                        <p className="text-red-500 text-sm">
+                        <p className="text-red-500 text-sm col-span-3 col-start-2">
                           {editForm.formState.errors.department_id.message}
                         </p>
                       )}
@@ -1263,8 +1299,12 @@ export function AdminUserManagement() {
                             User&apos;s email address is verified
                           </p>
                         </div>
-                        <Switch {...editForm.register("email_verified")}
-                        defaultChecked={selectedUser.email_verified} />
+                        <Controller 
+                        control={editForm.control}
+                        name="email_verified"
+                        render={({ field}) => (
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        )}></Controller>
                       </div>
                       <div className="flex items-center justify-between">
                         <div className="space-y-0.5">
@@ -1273,7 +1313,12 @@ export function AdminUserManagement() {
                             User&apos;s phone number is verified
                           </p>
                         </div>
-                        <Switch defaultChecked={selectedUser.phone_verified} />
+                        <Controller 
+                        control={editForm.control}
+                        name="phone_verified"
+                        render={({ field}) => (
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        )}></Controller>
                       </div>
                       <div className="flex items-center justify-between">
                         <div className="space-y-0.5">
@@ -1282,8 +1327,12 @@ export function AdminUserManagement() {
                             Require 2FA for login
                           </p>
                         </div>
-                        <Switch {...editForm.register("phone_verified")}
-                        defaultChecked={selectedUser.two_factor_enabled} />
+                        <Controller 
+                        control={editForm.control}
+                        name="two_factor_enabled"
+                        render={({ field}) => (
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        )}></Controller>
                       </div>
                       <div className="grid grid-cols-4 items-center gap-4">
                         <Label className="text-right">Login Attempts</Label>
@@ -1308,45 +1357,81 @@ export function AdminUserManagement() {
                         <Label htmlFor="edit-user-type" className="text-right">
                           User Type
                         </Label>
-                        <Select 
-                        // {...editForm.register("user_type")}
-                        defaultValue={selectedUser.user_type}>
-                          <SelectTrigger className="col-span-3">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="member">Member</SelectItem>
-                            <SelectItem value="admin">Admin</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <Controller
+                        control={editForm.control} 
+                        name="user_type"
+                        render={({field}) => ( 
+                          <Select value={field.value} onValueChange={field.onChange}>
+                            <SelectTrigger className="col-span-3">
+                              <SelectValue placeholder="Select User Type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="member">Member</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
+                        ></Controller>
                       </div>
                       <div className="space-y-2">
                         <Label>Role Permissions</Label>
-                        <div className="space-y-2">
-                          {["read", "write", "delete", "admin"].map(
-                            (permission) => (
-                              <div
-                                key={permission}
-                                className="flex items-center space-x-2"
-                              >
-                                <input 
-                                  type="checkbox" 
-                                  id={`permission-${permission}`}
-                                  defaultChecked={selectedUser.role_permissions ? selectedUser.role_permissions.includes(
-                                    permission
-                                  ): permission.includes("read")}
-                                  className="rounded border-gray-300"
-                                />
-                                <Label
-                                  htmlFor={`permission-${permission}`}
-                                  className="capitalize"
-                                >
-                                  {permission}
-                                </Label>
+                        {/* <Controller
+                          control={editForm.control}
+                          name="role_permissions"
+                          render={({ field }) => {
+                            const allPermissions = ["read", "write", "delete", "admin"];
+                            const selected = field.value ? field.value.split(",") : [];
+                            const togglePermission = (perm: string) => {
+                              let updated: string[];
+                              if (selected.includes(perm)) {
+                                updated = selected.filter((p) => p !== perm);
+                              } else {
+                                updated = [...selected, perm];
+                              }
+                              field.onChange(updated.join(","));
+                            };
+                            return (
+                              <div className="space-y-2">
+                                {allPermissions.map((permission) => (
+                                  <div key={permission} className="flex items-center space-x-2">
+                                    <input
+                                      type="checkbox"
+                                      id={`permission-${permission}`}
+                                      checked={selected.includes(permission)}
+                                      onChange={() => togglePermission(permission)}
+                                      className="rounded border-gray-300"
+                                    />
+                                    <Label htmlFor={`permission-${permission}`} className="capitalize">
+                                      {permission}
+                                    </Label>
+                                  </div>
+                                ))}
                               </div>
-                            )
+                            );
+                          }}
+                        /> */}
+                        <Controller
+                          control={editForm.control}
+                          name="role_permissions"
+                          render={({ field }) => (
+                            <Select value={field.value} onValueChange={field.onChange}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select Permission" />
+                              </SelectTrigger>
+                              <SelectContent>
+                               <SelectItem value="read">Read</SelectItem>
+                               <SelectItem value="write">Write</SelectItem>
+                                <SelectItem value="delete">Delete</SelectItem>
+                                <SelectItem value="admin">Admin</SelectItem>
+                              </SelectContent>
+                            </Select>                      
                           )}
-                        </div>
+                        />
+                        {editForm.formState.errors.role_permissions && (
+                          <p className="text-red-500 text-sm col-span-3 col-start-2">
+                            {editForm.formState.errors.role_permissions.message}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </TabsContent>
@@ -1356,7 +1441,9 @@ export function AdminUserManagement() {
                   >
                     Cancel
                   </Button> */}
-                  <Button type="submit">Save Changes</Button>
+                  <Button type="submit" disabled={editForm.formState.isSubmitSuccessful}>
+                    {editForm.formState.isSubmitting ? "Saving..." : "Save Changes"}
+                    </Button>
                 </DialogFooter>
               </form>
             </Form>

@@ -103,6 +103,25 @@ export const POST = async (req: NextRequest): Promise<Response> => {
       );
     }
 
+    //Create user permission
+    const { error: roleError } = await supabase
+      .from("user_permissions")
+      .insert({
+        user_id: authUserId,
+        permission_name: "read",
+      })
+      .select()
+      .single();
+
+    if (roleError) {
+      console.error("API Error", roleError);
+      return errorResponse(
+        MESSAGES.COMMON.ERROR,
+        roleError.message || MESSAGES.USERS.CREATE_FAILED,
+        500
+      );
+    }
+
     return successResponse(
       {
         data,

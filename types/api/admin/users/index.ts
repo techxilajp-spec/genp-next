@@ -32,7 +32,7 @@ export interface Users {
   is_locked: boolean;
   locked_until: string | null;
   user_deactivation_history: UserDeactivationHistory | null;
-  role_permissions: string;
+  permission_name: string;
 }
 
 export interface UserUpdate {
@@ -71,4 +71,8 @@ export interface UserCreate {
   phone_number: string;
   user_type: string;
   department: string;
+  email_verified: boolean;
+  phone_verified: boolean;
+  two_factor_enabled: boolean;
+  role_permissions: string;
 }
