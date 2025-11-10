@@ -203,35 +203,43 @@ export function AdminUserManagement() {
 
   //Handle add user form submission 
   const onSubmitAdd = async(data : UserForm) => { 
-    await createUser( 
-      { 
-        username : data.username,
-        email : data.email,
-        phone_number : data.phone_number,
-        user_type : data.user_type,
-        department : data.department_id,
+    await createUser(
+      {
+        username: data.username,
+        email: data.email,
+        phone_number: data.phone_number,
+        user_type: data.user_type,
+        department: data.department_id,
         email_verified: data.email_verified || false,
         phone_verified: data.phone_verified || false,
         two_factor_enabled: data.two_factor_enabled || false,
         role_permissions: data.role_permissions || "",
-      }, 
-      { 
-        onSuccess : () => { 
-          toast.success("User added successfully"); 
+      },
+      {
+        onSuccess: () => {
+          toast.success("User added successfully");
           refetchUsers();
           addForm.reset();
           addModal.setOpen(false);
           setIsAddDialogOpen(false);
-        }, 
-        onError : (error) => { 
-          toast.error( 
-            error instanceof Error 
-            ? error.message
-            : "Failed to add user"
-          )
-        }
+        },
+        onError: (error) => {
+          // axios error shape: error.response.data = { success: false, message, error }
+          const err: any = error;
+          const serverMsg =
+            err?.response?.data?.message || err?.response?.data?.error || err?.message;
+          if (err?.response?.status === 409) {
+            addForm.setError("email", {
+              type: "server",
+              message: String(serverMsg || "Email already registered"),
+            });
+            return;
+          }
+
+          toast.error(serverMsg || "Failed to add user");
+        },
       }
-    )
+    );
   }
 
   // Handle edit user form submission 
@@ -707,11 +715,6 @@ export function AdminUserManagement() {
                   </div>
                 <DialogFooter>
                   <Button type="submit">Create User</Button>
-                  <Button 
-                    type="submit" 
-                    onClick={() => console.log("Create button clicked")} > 
-                    Debug click
-                    </Button>
                 </DialogFooter>
               </form>
             </Form>
